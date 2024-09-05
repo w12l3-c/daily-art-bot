@@ -7,3 +7,6 @@ Discord Bot for tracking dailies
 Python Version > 3.9 
 
 ``` pip install discord.py ```
+
+### Todo
+[ ] test
