@@ -1,0 +1,32 @@
+# Git and version control
+.git
+.gitignore
+
+# Python cache and environments
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+venv
+.env.local
+.env.*.local
+
+# Development files
+.vscode
+*.log
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+
+# Docker files (don't copy Dockerfile into itself)
+Dockerfile
+.dockerignore
+
+# Local development
+.env.example
+backup.json.bak
