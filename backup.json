@@ -1,0 +1,32 @@
+{
+    "current_day": 4,
+    "season": 1,
+    "tracked_users": {
+        "666772080162766910": {
+            "username": "wal3202",
+            "user_nickname": "wal",
+            "sent_image": false,
+            "parole_days": 0,
+            "deceased": true,
+            "deceased_days": 14,
+            "missing_days": 14,
+            "revival": 0,
+            "buffer": 0,
+            "probation": false,
+            "ping": false
+        },
+        "374012168028291073": {
+            "username": "aikhao",
+            "user_nickname": "aikha",
+            "sent_image": false,
+            "parole_days": 1,
+            "deceased": true,
+            "deceased_days": 14,
+            "missing_days": 14,
+            "revival": 0,
+            "buffer": 0,
+            "probation": false,
+            "ping": false
+        }
+    }
+}
