@@ -33,6 +33,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 allowed_channels = [1281049819342831636]
+announcement_channel = 1281049819342831636  # Default announcement channel
 
 tracked_users = {}
 current_day = 1
@@ -56,13 +57,14 @@ def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     return False
 
 def load_data():
-    global current_day, season, tracked_users
+    global current_day, season, tracked_users, announcement_channel
     try:
         with open(saved_data, "r") as f:
             data = json.load(f)
             current_day = data.get("current_day", 1)
             season = data.get("season", 1)
             loaded_users = data.get("tracked_users", {})
+            announcement_channel = data.get("announcement_channel", allowed_channels[0] if allowed_channels else None)
             
             # Convert string keys back to integers (JSON stores dict keys as strings)
             tracked_users = {}
@@ -80,12 +82,14 @@ def load_data():
             print(f"✅ Data loaded successfully! (Day {current_day}, Season {season})")
             logger.info(f"Data loaded successfully! (Day {current_day}, Season {season})")
             logger.info(f"Loaded {len(tracked_users)} users with IDs: {list(tracked_users.keys())}")
+            logger.info(f"Announcement channel set to: {announcement_channel}")
     except (FileNotFoundError, json.JSONDecodeError):
         print("⚠️ No save file found. Starting fresh.")
         logger.warning("No save file found. Starting fresh.")
         current_day = 1
         season = 7
         tracked_users = {}
+        announcement_channel = allowed_channels[0] if allowed_channels else None
         load_duel_data(None)  # Initialize empty duel data
 
 @bot.event
@@ -198,6 +202,71 @@ async def list_channels(interaction: discord.Interaction):
     else:
         channels = "\n".join([f"<#{channel_id}>" for channel_id in allowed_channels])
         await interaction.response.send_message(f"**Tracked Channels:**\n{channels}")
+
+@bot.tree.command(name="set_announcement_channel", description="Set the channel for daily announcements and results.")
+@app_commands.describe(channel_id="Enter the channel ID for announcements")
+async def set_announcement_channel(interaction: discord.Interaction, channel_id: int):
+    global announcement_channel
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    # Check if the channel exists and bot can access it
+    try:
+        channel = bot.get_channel(channel_id)
+        if not channel:
+            await interaction.response.send_message("❌ Channel not found or bot doesn't have access to it.", ephemeral=True)
+            return
+        
+        announcement_channel = channel_id
+        await interaction.response.send_message(f"✅ Announcement channel set to <#{channel_id}>!\n"
+                                              f"Daily messages and season results will be posted here.", ephemeral=True)
+        logger.info(f"Announcement channel changed to {channel_id} by {interaction.user.name}")
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error setting announcement channel: {e}", ephemeral=True)
+        logger.error(f"Error setting announcement channel: {e}")
+
+@bot.tree.command(name="get_announcement_channel", description="Show the current announcement channel.")
+async def get_announcement_channel(interaction: discord.Interaction):
+    if announcement_channel:
+        channel = bot.get_channel(announcement_channel)
+        if channel:
+            await interaction.response.send_message(f"📢 **Current announcement channel:** <#{announcement_channel}> ({channel.name})")
+        else:
+            await interaction.response.send_message(f"⚠️ **Current announcement channel ID:** {announcement_channel} (channel not accessible)")
+    else:
+        await interaction.response.send_message("❌ No announcement channel set. Use `/set_announcement_channel` to set one.")
+
+@bot.tree.command(name="channel_info", description="Show tracking and announcement channel information.")
+async def channel_info(interaction: discord.Interaction):
+    info_message = "## 📋 **Channel Configuration**\n\n"
+    
+    # Tracking channels
+    if allowed_channels:
+        info_message += "**🎨 Art Tracking Channels:**\n"
+        for channel_id in allowed_channels:
+            channel = bot.get_channel(channel_id)
+            channel_name = f" ({channel.name})" if channel else " (not accessible)"
+            info_message += f"• <#{channel_id}>{channel_name}\n"
+    else:
+        info_message += "**🎨 Art Tracking Channels:** None\n"
+    
+    # Announcement channel
+    info_message += "\n**📢 Announcement Channel:**\n"
+    if announcement_channel:
+        channel = bot.get_channel(announcement_channel)
+        channel_name = f" ({channel.name})" if channel else " (not accessible)"
+        info_message += f"• <#{announcement_channel}>{channel_name}\n"
+    else:
+        info_message += "• None set\n"
+    
+    info_message += "\n**ℹ️ How it works:**\n"
+    info_message += "• Art can be submitted in any tracking channel\n"
+    info_message += "• Daily messages and results post to announcement channel only\n"
+    info_message += "• Bot responds to art submissions in the same channel they were posted"
+    
+    await interaction.response.send_message(info_message)
 
 @bot.tree.command(name="add_user", description="Add a user to the art tracking system.")
 @app_commands.describe(user="Select a user")
@@ -496,7 +565,10 @@ async def send_daily_art_message():
     
     message += "\n" + "☁️"*20
 
-    channel = bot.get_channel(allowed_channels[0])
+    channel = bot.get_channel(announcement_channel)
+    if not channel:
+        logger.error(f"Announcement channel {announcement_channel} not found or not accessible")
+        return
 
     # Daily reset logic at 12:30 am, run loop of 30 min, check if time // 30 == 0 and hour == 1
     now = datetime.now()   
@@ -609,6 +681,7 @@ async def save_data_task():
         "current_day": current_day,
         "season": season,
         "tracked_users": tracked_users,
+        "announcement_channel": announcement_channel,
         "duel": get_duel_data()
     }
     
@@ -640,7 +713,7 @@ async def ping_jailed_users():
 
         message += "\n**You have 2 hours before you're shipped to the graveyard!!** 🪦"
         
-        channel = bot.get_channel(allowed_channels[0])
+        channel = bot.get_channel(announcement_channel)
         if channel:
             await channel.send(message)
 
