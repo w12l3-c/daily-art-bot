@@ -11,6 +11,10 @@ build:
 
 ## Run the container (detached, restart on reboot/crash)
 run: stop
+	@echo "Creating required files if they don't exist..."
+	@mkdir -p badges
+	@test -f backup.json || echo '{}' > backup.json
+	@test -f bot.log || touch bot.log
 	docker run -d \
 	  --name $(IMAGE_NAME) \
 	  --restart unless-stopped \
@@ -41,13 +45,22 @@ shell:
 status:
 	docker ps | grep $(IMAGE_NAME) || echo "Container not running"
 
+## Setup: Create required files and directories
+setup:
+	@echo "Setting up required files and directories..."
+	@mkdir -p badges
+	@test -f backup.json || echo '{}' > backup.json
+	@test -f bot.log || touch bot.log
+	@test -f .env || cp .env.example .env
+	@echo "Setup complete! Make sure to edit .env with your bot token."
+
 ## Create backup of bot data
 backup:
 	cp backup.json backup.json.$(shell date +%Y%m%d_%H%M%S) 2>/dev/null || true
 	@echo "Backup created (if backup.json existed)"
 
-## Deploy: build and run with backup
-deploy: backup build run
+## Deploy: setup, build and run with backup
+deploy: setup backup build run
 	@echo "Deployment complete! Use 'make logs' to monitor."
 
 ## (Optional) Install Docker on your Raspberry Pi

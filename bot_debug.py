@@ -464,7 +464,7 @@ async def sync_global(interaction: discord.Interaction):
 
 
 # Edit the seconds 
-@tasks.loop(hours=time_deploy)  # Save data every 8 hours
+@tasks.loop(seconds=time_debug)
 async def send_daily_art_message():
     global current_day, season, season_theme, season_days
 
@@ -603,7 +603,7 @@ async def send_daily_art_message():
         
 
 
-@tasks.loop(hours=time_deploy)  # Save data every 8 hours
+@tasks.loop(seconds=time_debug)
 async def save_data_task():
     data = {
         "current_day": current_day,
@@ -618,7 +618,7 @@ async def save_data_task():
     print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-@tasks.loop(hours=time_deploy)  # Save data every 8 hours
+@tasks.loop(seconds=time_debug)
 async def ping_jailed_users():
     ping_users = []
     for user_id, user in tracked_users.items():
@@ -644,9 +644,9 @@ async def ping_jailed_users():
         if channel:
             await channel.send(message)
 
-@tasks.loop(hours=6)  # Check every six hour for expired duels
+@tasks.loop(seconds=60)  # Check every minute for debug mode
 async def cleanup_duels():
-    """Clean up expired duels every six hour"""
+    """Clean up expired duels every minute in debug mode"""
     try:
         cleaned = await cleanup_expired_duels(bot, allowed_channels)
         if cleaned > 0:
