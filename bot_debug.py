@@ -6,7 +6,11 @@ import json
 import os
 import logging
 from dotenv import load_dotenv
-from duel import register_duel_commands, set_tracked_users_reference, update_duel_progress, cleanup_expired_duels, get_duel_rankings, get_duel_data, load_duel_data  
+import aiohttp
+import os
+import shutil
+from duel import register_duel_commands, set_tracked_users_reference, update_duel_progress, cleanup_expired_duels, get_duel_rankings, get_duel_data, load_duel_data
+from chain import register_chain_commands, set_tracked_users_reference as set_chain_tracked_users, process_chain_submission, get_chain_data, load_chain_data  
 
 # Configure logging
 logging.basicConfig(
@@ -56,6 +60,68 @@ def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     
     return False
 
+def has_badge_permissions(member) -> bool:
+    """Check if user has permissions to upload badges"""
+    # Check for administrator permissions
+    if member.guild_permissions.administrator:
+        return True
+    
+    # Check for mod role (case-insensitive)
+    if hasattr(member, 'roles'):
+        for role in member.roles:
+            if role.name.lower() == MOD_ROLE_NAME.lower():
+                return True
+    
+    return False
+
+async def handle_badge_upload(message):
+    """Handle badge upload with #badge tag"""
+    # Check if user has permissions
+    member = message.author
+    if not has_badge_permissions(member):
+        await message.channel.send(f"❌ {member.name}, you need administrator permissions or mod role to upload badges.")
+        return True  # Return True to indicate message was handled
+    
+    # Check if attachment is PNG
+    attachment = message.attachments[0]
+    if not attachment.filename.lower().endswith('.png'):
+        await message.channel.send(f"❌ {member.name}, badges must be PNG files.")
+        return True
+    
+    try:
+        # Create badges directory if it doesn't exist
+        badges_dir = "badges"
+        if not os.path.exists(badges_dir):
+            os.makedirs(badges_dir)
+        
+        # Download the image
+        async with aiohttp.ClientSession() as session:
+            async with session.get(attachment.url) as resp:
+                if resp.status == 200:
+                    # Save the badge
+                    badge_path = os.path.join(badges_dir, attachment.filename)
+                    
+                    # If file exists, create a backup
+                    if os.path.exists(badge_path):
+                        backup_path = f"{badge_path}.backup_{int(datetime.now().timestamp())}"
+                        shutil.copy2(badge_path, backup_path)
+                        logger.info(f"Created backup: {backup_path}")
+                    
+                    with open(badge_path, 'wb') as f:
+                        f.write(await resp.read())
+                    
+                    await message.channel.send(f"🏆 {member.name}, badge '{attachment.filename}' has been uploaded successfully!")
+                    logger.info(f"Badge uploaded: {attachment.filename} by {member.name}")
+                    return True
+                else:
+                    await message.channel.send(f"❌ {member.name}, failed to download the badge image.")
+                    return True
+    
+    except Exception as e:
+        logger.error(f"Error uploading badge: {e}")
+        await message.channel.send(f"❌ {member.name}, there was an error uploading the badge.")
+        return True
+
 def load_data():
     global current_day, season, tracked_users, announcement_channel
     try:
@@ -78,6 +144,10 @@ def load_data():
             # Load duel data if it exists
             duel_data = data.get("duel", None)
             load_duel_data(duel_data)
+            
+            # Load chain data if it exists
+            chain_data = data.get("chain", None)
+            load_chain_data(chain_data)
                     
             print(f"✅ Data loaded successfully! (Day {current_day}, Season {season})")
             logger.info(f"Data loaded successfully! (Day {current_day}, Season {season})")
@@ -91,6 +161,7 @@ def load_data():
         tracked_users = {}
         announcement_channel = allowed_channels[0] if allowed_channels else None
         load_duel_data(None)  # Initialize empty duel data
+        load_chain_data(None)  # Initialize empty chain data
 
 @bot.event
 async def on_ready():
@@ -102,6 +173,10 @@ async def on_ready():
         # Initialize duel system with tracked users reference
         set_tracked_users_reference(tracked_users)
         await register_duel_commands(bot)
+        
+        # Initialize chain system with tracked users reference
+        set_chain_tracked_users(tracked_users)
+        await register_chain_commands(bot)
         
         synced = await bot.tree.sync()  # Sync slash commands
         print(f"Synced {len(synced)} commands.")
@@ -131,8 +206,14 @@ async def on_message(message):
 
     # Check if the message has an image and if the user is being tracked
     if message.attachments and any(attachment.content_type.startswith("image/") for attachment in message.attachments):
+        content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
+        
+        # Handle badge uploads (specific role required)
+        if "#badge" in content_lower:
+            if await handle_badge_upload(message):
+                return  # Badge handled, don't process as regular art
+        
         if message.author.id in tracked_users:
-            content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
             user_data = tracked_users[message.author.id]
 
             if "#daily" in content_lower:
@@ -151,6 +232,14 @@ async def on_message(message):
                 print(f"🛑 {message.author.name} submitted buffer art.")
                 logger.info(f"{message.author.name} submitted buffer art.")
                 await message.channel.send(f"📌 {message.author.name}, your buffer art has been recorded! This will not count for today's submission.")
+
+            elif "#chain" in content_lower:
+                # Handle chain submission
+                chain_processed = await process_chain_submission(message.author.id, message, message.attachments[0])
+                if not chain_processed:
+                    # If chain processing failed and user didn't tag it as anything else, show the regular untagged message
+                    if user_data['ping']:
+                        await message.channel.send(f"⚠️ {message.author.name}, please tag your submission with `#daily` if it's an official art entry.")
 
             else:
                 print(f"📸 {message.author.name} uploaded an image but didn't tag it as art.")
@@ -531,6 +620,45 @@ async def sync_global(interaction: discord.Interaction):
         await interaction.response.send_message(f"❌ Error syncing commands: {e}", ephemeral=True)
         logger.error(f"Error manually syncing commands: {e}")
 
+@bot.tree.command(name="list_badges", description="List all available badges.")
+async def list_badges(interaction: discord.Interaction):
+    badges_dir = "badges"
+    
+    if not os.path.exists(badges_dir):
+        await interaction.response.send_message("📁 No badges directory found.", ephemeral=True)
+        return
+    
+    badge_files = [f for f in os.listdir(badges_dir) if f.lower().endswith('.png')]
+    
+    if not badge_files:
+        await interaction.response.send_message("🏆 No badges found in the badges directory.", ephemeral=True)
+        return
+    
+    badges_list = "\n".join([f"• {badge}" for badge in sorted(badge_files)])
+    await interaction.response.send_message(f"🏆 **Available Badges:**\n{badges_list}")
+
+@bot.tree.command(name="badge_help", description="Show information about badge uploads.")
+async def badge_help(interaction: discord.Interaction):
+    help_message = (
+        "🏆 **Badge Upload System** 🏆\n\n"
+        "**How to upload a badge:**\n"
+        "1. Upload a PNG image file\n"
+        "2. Include `#badge` in your message\n"
+        "3. Must have admin permissions or mod role\n\n"
+        "**Badge naming convention:**\n"
+        "• `UWVAC_Badges_Season{number}.png`\n"
+        "• Example: `UWVAC_Badges_Season8.png`\n\n"
+        "**Features:**\n"
+        "• Automatic backup of existing badges\n"
+        "• Only PNG files accepted\n"
+        "• Stored in the `/badges` directory\n\n"
+        "**Commands:**\n"
+        "• `/list_badges` - View all available badges\n"
+        "• `/badge_help` - Show this help message"
+    )
+    
+    await interaction.response.send_message(help_message, ephemeral=True)
+
 
 # Edit the seconds 
 @tasks.loop(seconds=time_debug)
@@ -682,7 +810,8 @@ async def save_data_task():
         "season": season,
         "tracked_users": tracked_users,
         "announcement_channel": announcement_channel,
-        "duel": get_duel_data()
+        "duel": get_duel_data(),
+        "chain": get_chain_data()
     }
     
     with open(saved_data, "w") as f:

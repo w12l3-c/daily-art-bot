@@ -49,6 +49,8 @@ Beginning Example:
 - [x] Duel system with multiple challenge types (volume, streak, time)
 - [x] Duel forfeit functionality and season rankings
 - [x] Docker containerization for easy deployment
+- [x] Badge upload system for admins/mods
+- [x] Art chain collaboration system with GIF generation
 
 
 todo:
@@ -71,6 +73,12 @@ todo:
 - `/duel_forfeit`: Forfeit your current active duel
 - `/duel_leaderboard`: View current season duel rankings
 - `/duel_status`: Check your current duel status
+- `/chain_start name amount`: Start a new art chain collaboration
+- `/chain_on name`: Join an existing art chain
+- `/chain_list`: List all active art chains
+- `/chain_cancel name`: Cancel an art chain (creator/admin only)
+- `/list_badges`: View all available badges
+- `/badge_help`: Information about badge uploads
 
 ### User Attributes:
 - `sent_image`: User status of sending image
@@ -103,3 +111,33 @@ The bot features a comprehensive duel system where users can challenge each othe
 - Forfeit functionality if you need to exit a duel early
 - Automatic cleanup of expired duels
 - Debug mode available for testing (120-second duels)
+
+## Badge Upload System:
+Admins and users with the mod role can upload custom badges for seasons:
+
+**Features:**
+- Upload PNG badges with `#badge` tag
+- Automatic backup of existing badges
+- Badge management commands
+- Secure permission checks
+
+**Usage:**
+1. Upload a PNG file with the message `#badge`
+2. File will be saved to the `/badges` directory
+3. Use naming convention: `UWVAC_Badges_Season{number}.png`
+
+## Art Chain System:
+Collaborative art feature where multiple users contribute to create an animated GIF:
+
+**How it works:**
+1. Someone starts a chain with `/chain_start name amount`
+2. Other users join with `/chain_on name` and upload art with `#chain` tag
+3. When the target number of submissions is reached, all images are compiled into a GIF
+4. The final GIF is automatically posted to the channel
+
+**Features:**
+- Automatic GIF generation from all submissions
+- Progress tracking and participant lists
+- Chain management (cancel, list active chains)
+- Prevents duplicate submissions from same user
+- Automatic cleanup and file management
