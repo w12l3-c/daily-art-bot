@@ -325,6 +325,45 @@ async def set_announcement_channel(interaction: discord.Interaction, channel: di
                                           f"Daily messages and season results will be posted here.", ephemeral=True)
     logger.info(f"Announcement channel changed to {channel.id} ({channel.name}) by {interaction.user.name}")
 
+@bot.tree.command(name="set_announcement_channel_by_id", description="Set announcement channel by ID (supports threads).")
+@app_commands.describe(channel_id="Enter the channel or thread ID as text")
+async def set_announcement_channel_by_id(interaction: discord.Interaction, channel_id: str):
+    global announcement_channel
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    # Convert string to int and validate
+    try:
+        channel_id_int = int(channel_id.strip())
+        if channel_id_int <= 0:
+            raise ValueError("Channel ID must be positive")
+    except ValueError:
+        await interaction.response.send_message("❌ Invalid channel ID. Please enter a valid positive number.", ephemeral=True)
+        return
+    
+    # Check if channel/thread exists
+    channel = bot.get_channel(channel_id_int)
+    if channel:
+        # Validate it's a text channel or thread
+        if isinstance(channel, (discord.TextChannel, discord.Thread)):
+            announcement_channel = channel_id_int
+            channel_type = "Thread" if isinstance(channel, discord.Thread) else "Channel"
+            await interaction.response.send_message(f"✅ Announcement {channel_type.lower()} set to {channel.mention} ({channel.name})!\n"
+                                                  f"Daily messages and season results will be posted here.", ephemeral=True)
+            logger.info(f"Announcement channel set to {channel_id_int} ({channel.name}) by {interaction.user.name}")
+        else:
+            await interaction.response.send_message("❌ Only text channels and threads are supported for announcements.", ephemeral=True)
+    else:
+        # Channel not found - might be a thread the bot can't see, or from another server
+        await interaction.response.send_message(f"⚠️ Channel/thread with ID {channel_id_int} not found or bot doesn't have access. Setting anyway...\n"
+                                              f"Make sure the bot has permissions to post in that channel/thread.", ephemeral=True)
+        announcement_channel = channel_id_int
+        logger.warning(f"Announcement channel set to unknown ID {channel_id_int} by {interaction.user.name}")
+
+@bot.tree.command(name="get_announcement_channel", description="Show the current announcement channel.")
+
 @bot.tree.command(name="add_channel_by_id", description="Add a channel by ID (fallback method).")
 @app_commands.describe(channel_id="Enter the channel ID as text")
 async def add_channel_by_id(interaction: discord.Interaction, channel_id: str):
