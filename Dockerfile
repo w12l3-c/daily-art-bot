@@ -1,24 +1,26 @@
-# Use the official Python slim image (multi-arch, works on Raspberry Pi)
-FROM python:3.12-slim
-
-# Create app directory
+FROM python:3.12-slim-bookworm
 WORKDIR /app
 
-# Install system dependencies and clean up in one layer
+# Build tools + image libs for Pillow
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+    build-essential python3-dev \
+    zlib1g-dev libjpeg-dev libpng-dev libtiff5-dev \
+    libfreetype6-dev liblcms2-dev libwebp-dev \
+    libharfbuzz-dev libfribidi-dev libopenjp2-7-dev \
+    libimagequant-dev libxcb1-dev \
+ && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency list and install Python packages
+# Use piwheels if available, but also allow fallback to PyPI
+# (You can also just omit these ENV lines entirely.)
+ENV PIP_EXTRA_INDEX_URL=https://pypi.org/simple
+# Optional: keep piwheels first; remove if you prefer PyPI first
+ENV PIP_INDEX_URL=https://www.piwheels.org/simple
+
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir --prefer-binary -r requirements.txt
 
-# Copy your bot code (excluding files via .dockerignore)
 COPY . .
-
-# Create directories for data persistence
 RUN mkdir -p /app/badges
-
-# Bot connects out, no ports needed
-# Environment variables should be provided via --env-file or docker-compose
 
 CMD ["python", "bot.py"]
