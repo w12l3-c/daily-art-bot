@@ -250,17 +250,23 @@ async def on_message(message):
     # Process other commands
     await bot.process_commands(message)
 
-@bot.tree.command(name="add_channel", description="Add a channel for tracking art submissions.")
-@app_commands.describe(channel="Select or mention a channel")
-async def add_channel(interaction: discord.Interaction, channel: discord.TextChannel):
+@bot.tree.command(name="add_channel", description="Add a channel or thread for tracking art submissions.")
+@app_commands.describe(channel="Select or mention a channel or thread")
+async def add_channel(interaction: discord.Interaction, channel: discord.abc.GuildChannel):
     # Check if user has admin permissions or mod role
     if not has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
+    
+    # Check if it's a text channel or thread
+    if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+        await interaction.response.send_message("❌ Only text channels and threads are supported for art tracking.", ephemeral=True)
+        return
         
     if channel.id not in allowed_channels:
         allowed_channels.append(channel.id)
-        await interaction.response.send_message(f"✅ Channel {channel.mention} added to allowed channels!", ephemeral=True)
+        channel_type = "Thread" if isinstance(channel, discord.Thread) else "Channel"
+        await interaction.response.send_message(f"✅ {channel_type} {channel.mention} added to allowed channels!", ephemeral=True)
     else:
         await interaction.response.send_message(f"⚠️ Channel {channel.mention} is already in the allowed list.", ephemeral=True)
 
@@ -300,16 +306,22 @@ async def list_channels(interaction: discord.Interaction):
         await interaction.response.send_message(f"**Tracked Channels:**\n{channels}")
 
 @bot.tree.command(name="set_announcement_channel", description="Set the channel for daily announcements and results.")
-@app_commands.describe(channel="Select or mention the announcement channel")
-async def set_announcement_channel(interaction: discord.Interaction, channel: discord.TextChannel):
+@app_commands.describe(channel="Select or mention the announcement channel or thread")
+async def set_announcement_channel(interaction: discord.Interaction, channel: discord.abc.GuildChannel):
     global announcement_channel
     # Check if user has admin permissions or mod role
     if not has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
     
+    # Check if it's a text channel or thread
+    if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+        await interaction.response.send_message("❌ Only text channels and threads are supported for announcements.", ephemeral=True)
+        return
+    
     announcement_channel = channel.id
-    await interaction.response.send_message(f"✅ Announcement channel set to {channel.mention}!\n"
+    channel_type = "Thread" if isinstance(channel, discord.Thread) else "Channel"
+    await interaction.response.send_message(f"✅ Announcement {channel_type.lower()} set to {channel.mention}!\n"
                                           f"Daily messages and season results will be posted here.", ephemeral=True)
     logger.info(f"Announcement channel changed to {channel.id} ({channel.name}) by {interaction.user.name}")
 
