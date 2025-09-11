@@ -127,8 +127,8 @@ def load_data():
     try:
         with open(saved_data, "r") as f:
             data = json.load(f)
-            current_day = data.get("current_day", 1)
-            season = data.get("season", 1)
+            current_day = data.get("current_day", current_day)
+            season = data.get("season", season)
             loaded_users = data.get("tracked_users", {})
             announcement_channel = data.get("announcement_channel", allowed_channels[0] if allowed_channels else None)
             
