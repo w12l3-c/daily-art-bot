@@ -251,32 +251,39 @@ async def on_message(message):
     await bot.process_commands(message)
 
 @bot.tree.command(name="add_channel", description="Add a channel for tracking art submissions.")
-@app_commands.describe(channel_id="Enter the channel ID")
-async def add_channel(interaction: discord.Interaction, channel_id: int):
+@app_commands.describe(channel="Select or mention a channel")
+async def add_channel(interaction: discord.Interaction, channel: discord.TextChannel):
     # Check if user has admin permissions or mod role
     if not has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
         
-    if channel_id not in allowed_channels:
-        allowed_channels.append(channel_id)
-        await interaction.response.send_message(f"✅ Channel {channel_id} added to allowed channels!", ephemeral=True)
+    if channel.id not in allowed_channels:
+        allowed_channels.append(channel.id)
+        await interaction.response.send_message(f"✅ Channel {channel.mention} added to allowed channels!", ephemeral=True)
     else:
-        await interaction.response.send_message(f"⚠️ Channel {channel_id} is already in the allowed list.", ephemeral=True)
+        await interaction.response.send_message(f"⚠️ Channel {channel.mention} is already in the allowed list.", ephemeral=True)
 
 @bot.tree.command(name="remove_channel", description="Remove a channel from tracking.")
 @app_commands.describe(channel_id="Enter the channel ID")
-async def remove_channel(interaction: discord.Interaction, channel_id: int):
+async def remove_channel(interaction: discord.Interaction, channel_id: str):
     # Check if user has admin permissions or mod role
     if not has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
+    
+    # Convert string to int and validate
+    try:
+        channel_id_int = int(channel_id)
+    except ValueError:
+        await interaction.response.send_message("❌ Invalid channel ID. Please enter a valid number.", ephemeral=True)
+        return
         
-    if channel_id in allowed_channels:
-        allowed_channels.remove(channel_id)
-        await interaction.response.send_message(f"✅ Channel {channel_id} removed from allowed channels!", ephemeral=True)
+    if channel_id_int in allowed_channels:
+        allowed_channels.remove(channel_id_int)
+        await interaction.response.send_message(f"✅ Channel {channel_id_int} removed from allowed channels!", ephemeral=True)
     else:
-        await interaction.response.send_message(f"❌ Channel {channel_id} not found in the allowed list.", ephemeral=True)
+        await interaction.response.send_message(f"❌ Channel {channel_id_int} not found in the allowed list.", ephemeral=True)
 
 @bot.tree.command(name="list_channels", description="List all channels being tracked.")
 @app_commands.describe()
@@ -294,27 +301,63 @@ async def list_channels(interaction: discord.Interaction):
 
 @bot.tree.command(name="set_announcement_channel", description="Set the channel for daily announcements and results.")
 @app_commands.describe(channel_id="Enter the channel ID for announcements")
-async def set_announcement_channel(interaction: discord.Interaction, channel_id: int):
+async def set_announcement_channel(interaction: discord.Interaction, channel_id: str):
     global announcement_channel
     # Check if user has admin permissions or mod role
     if not has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
     
+    # Convert string to int and validate
+    try:
+        channel_id_int = int(channel_id)
+    except ValueError:
+        await interaction.response.send_message("❌ Invalid channel ID. Please enter a valid number.", ephemeral=True)
+        return
+    
     # Check if the channel exists and bot can access it
     try:
-        channel = bot.get_channel(channel_id)
+        channel = bot.get_channel(channel_id_int)
         if not channel:
             await interaction.response.send_message("❌ Channel not found or bot doesn't have access to it.", ephemeral=True)
             return
         
-        announcement_channel = channel_id
-        await interaction.response.send_message(f"✅ Announcement channel set to <#{channel_id}>!\n"
+        announcement_channel = channel_id_int
+        await interaction.response.send_message(f"✅ Announcement channel set to <#{channel_id_int}>!\n"
                                               f"Daily messages and season results will be posted here.", ephemeral=True)
-        logger.info(f"Announcement channel changed to {channel_id} by {interaction.user.name}")
+        logger.info(f"Announcement channel changed to {channel_id_int} by {interaction.user.name}")
     except Exception as e:
         await interaction.response.send_message(f"❌ Error setting announcement channel: {e}", ephemeral=True)
         logger.error(f"Error setting announcement channel: {e}")
+
+@bot.tree.command(name="add_channel_by_id", description="Add a channel by ID (fallback method).")
+@app_commands.describe(channel_id="Enter the channel ID as text")
+async def add_channel_by_id(interaction: discord.Interaction, channel_id: str):
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    # Convert string to int and validate
+    try:
+        channel_id_int = int(channel_id.strip())
+        if channel_id_int <= 0:
+            raise ValueError("Channel ID must be positive")
+    except ValueError:
+        await interaction.response.send_message("❌ Invalid channel ID. Please enter a valid positive number.", ephemeral=True)
+        return
+    
+    # Check if channel exists
+    channel = bot.get_channel(channel_id_int)
+    if not channel:
+        await interaction.response.send_message(f"⚠️ Channel with ID {channel_id_int} not found or bot doesn't have access. Adding anyway...", ephemeral=True)
+        
+    if channel_id_int not in allowed_channels:
+        allowed_channels.append(channel_id_int)
+        channel_name = f" ({channel.name})" if channel else ""
+        await interaction.response.send_message(f"✅ Channel {channel_id_int}{channel_name} added to allowed channels!", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"⚠️ Channel {channel_id_int} is already in the allowed list.", ephemeral=True)
 
 @bot.tree.command(name="get_announcement_channel", description="Show the current announcement channel.")
 async def get_announcement_channel(interaction: discord.Interaction):
