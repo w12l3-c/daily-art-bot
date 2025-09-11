@@ -29,7 +29,7 @@ time_debug = 30  # seconds
 time_deploy = 1 # hours
 
 # Configurable mod role name (case-insensitive)
-MOD_ROLE_NAME = "wal"
+MOD_ROLE_NAME = ["wal"]
 
 intents = discord.Intents.default()
 intents.members = True
@@ -55,7 +55,7 @@ def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     # Check for mod role (case-insensitive)
     if hasattr(interaction.user, 'roles'):
         for role in interaction.user.roles:
-            if role.name.lower() == MOD_ROLE_NAME.lower():
+            if role.name.lower() in MOD_ROLE_NAME:
                 return True
     
     return False
@@ -69,7 +69,7 @@ def has_badge_permissions(member) -> bool:
     # Check for mod role (case-insensitive)
     if hasattr(member, 'roles'):
         for role in member.roles:
-            if role.name.lower() == MOD_ROLE_NAME.lower():
+            if role.name.lower() in MOD_ROLE_NAME:
                 return True
     
     return False
