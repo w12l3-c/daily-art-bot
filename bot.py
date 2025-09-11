@@ -40,10 +40,10 @@ allowed_channels = [1281049819342831636]
 announcement_channel = 1281049819342831636  # Default announcement channel
 
 tracked_users = {}
-current_day = 1
-season = 3
+current_day = 45
+season = 1
 season_theme = "Testing"
-season_days = 10
+season_days = 50
 saved_data = "backup.json"
 
 def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
@@ -659,6 +659,94 @@ async def badge_help(interaction: discord.Interaction):
     
     await interaction.response.send_message(help_message, ephemeral=True)
 
+@bot.tree.command(name="season_info", description="Show current season information.")
+async def season_info(interaction: discord.Interaction):
+    info_message = (
+        f"## 📅 **Current Season Information** 📅\n\n"
+        f"**🎭 Season**: {season}\n"
+        f"**🎨 Theme**: {season_theme}\n"
+        f"**📆 Current Day**: {current_day}\n"
+        f"**📊 Total Days**: {season_days}\n"
+        f"**⏳ Days Remaining**: {season_days - current_day + 1}\n"
+        f"**👥 Active Users**: {len(tracked_users)}\n\n"
+        f"**Progress**: {current_day}/{season_days} days ({(current_day/season_days)*100:.1f}%)"
+    )
+    await interaction.response.send_message(info_message)
+
+@bot.tree.command(name="set_season_theme", description="Set the current season theme (Admin only).")
+@app_commands.describe(theme="Enter the new season theme")
+async def set_season_theme(interaction: discord.Interaction, theme: str):
+    global season_theme
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    old_theme = season_theme
+    season_theme = theme
+    await interaction.response.send_message(f"✅ Season theme changed from **\"{old_theme}\"** to **\"{season_theme}\"**", ephemeral=True)
+    logger.info(f"Season theme changed from '{old_theme}' to '{season_theme}' by {interaction.user.name}")
+
+@bot.tree.command(name="set_season_days", description="Set the total days for current season (Admin only).")
+@app_commands.describe(days="Enter the total number of days for the season")
+async def set_season_days(interaction: discord.Interaction, days: int):
+    global season_days
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    if days < 1:
+        await interaction.response.send_message("❌ Season days must be at least 1.", ephemeral=True)
+        return
+    
+    if days < current_day:
+        await interaction.response.send_message(f"⚠️ Warning: Setting season days ({days}) less than current day ({current_day}). Season will end immediately!", ephemeral=True)
+    
+    old_days = season_days
+    season_days = days
+    await interaction.response.send_message(f"✅ Season days changed from **{old_days}** to **{season_days}** days", ephemeral=True)
+    logger.info(f"Season days changed from {old_days} to {season_days} by {interaction.user.name}")
+
+@bot.tree.command(name="set_current_day", description="Set the current day number (Admin only).")
+@app_commands.describe(day="Enter the current day number")
+async def set_current_day(interaction: discord.Interaction, day: int):
+    global current_day
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    if day < 1:
+        await interaction.response.send_message("❌ Current day must be at least 1.", ephemeral=True)
+        return
+    
+    if day > season_days:
+        await interaction.response.send_message(f"⚠️ Warning: Setting current day ({day}) greater than season days ({season_days}). Season will end immediately!", ephemeral=True)
+    
+    old_day = current_day
+    current_day = day
+    await interaction.response.send_message(f"✅ Current day changed from **{old_day}** to **{current_day}**", ephemeral=True)
+    logger.info(f"Current day changed from {old_day} to {current_day} by {interaction.user.name}")
+
+@bot.tree.command(name="set_season_number", description="Set the season number (Admin only).")
+@app_commands.describe(season_num="Enter the season number")
+async def set_season_number(interaction: discord.Interaction, season_num: int):
+    global season
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    if season_num < 1:
+        await interaction.response.send_message("❌ Season number must be at least 1.", ephemeral=True)
+        return
+    
+    old_season = season
+    season = season_num
+    await interaction.response.send_message(f"✅ Season number changed from **{old_season}** to **{season}**", ephemeral=True)
+    logger.info(f"Season number changed from {old_season} to {season} by {interaction.user.name}")
+
 
 # Edit the seconds 
 @tasks.loop(minutes=30)  # Save data every 8 hours
@@ -701,14 +789,19 @@ async def send_daily_art_message():
     # Daily reset logic at 12:30 am, run loop of 30 min, check if time // 30 == 0 and hour == 1
     now = datetime.now()   
     if now.hour == 0 and now.minute >= 30:
-        if channel:
-            print("Sending daily art message...")
-            logger.info("Sending daily art message...")
-            await channel.send(message)
+        # Only send daily message and advance day if there are tracked users
+        if tracked_users:
+            if channel:
+                print("Sending daily art message...")
+                logger.info("Sending daily art message...")
+                await channel.send(message)
 
-        print(f"Day {current_day} has ended!")
-        logger.info(f"Day {current_day} has ended!")
-        current_day += 1
+            print(f"Day {current_day} has ended!")
+            logger.info(f"Day {current_day} has ended!")
+            current_day += 1
+        else:
+            print("No tracked users - pausing season progression")
+            logger.info("No tracked users - season paused until users are added")
         if current_day == season_days + 1:
             badge_pathway = f"badges/UWVAC_Badges_Season{season}.png"
             if os.path.exists(badge_pathway):
