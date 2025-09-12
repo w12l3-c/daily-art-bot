@@ -402,17 +402,6 @@ async def add_channel_by_id(interaction: discord.Interaction, channel_id: str):
     else:
         await interaction.response.send_message(f"⚠️ Channel {channel_id_int} is already in the allowed list.", ephemeral=True)
 
-@bot.tree.command(name="get_announcement_channel", description="Show the current announcement channel.")
-async def get_announcement_channel(interaction: discord.Interaction):
-    if announcement_channel:
-        channel = bot.get_channel(announcement_channel)
-        if channel:
-            await interaction.response.send_message(f"📢 **Current announcement channel:** <#{announcement_channel}> ({channel.name})")
-        else:
-            await interaction.response.send_message(f"⚠️ **Current announcement channel ID:** {announcement_channel} (channel not accessible)")
-    else:
-        await interaction.response.send_message("❌ No announcement channel set. Use `/set_announcement_channel` to set one.")
-
 @bot.tree.command(name="channel_info", description="Show tracking and announcement channel information.")
 async def channel_info(interaction: discord.Interaction):
     info_message = "## 📋 **Channel Configuration**\n\n"
