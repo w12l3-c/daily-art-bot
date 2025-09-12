@@ -363,6 +363,15 @@ async def set_announcement_channel_by_id(interaction: discord.Interaction, chann
         logger.warning(f"Announcement channel set to unknown ID {channel_id_int} by {interaction.user.name}")
 
 @bot.tree.command(name="get_announcement_channel", description="Show the current announcement channel.")
+async def get_announcement_channel(interaction: discord.Interaction):
+    if announcement_channel:
+        channel = bot.get_channel(announcement_channel)
+        if channel:
+            await interaction.response.send_message(f"📢 **Current announcement channel:** {channel.mention} ({channel.name})")
+        else:
+            await interaction.response.send_message(f"⚠️ **Current announcement channel ID:** {announcement_channel} (channel not accessible)")
+    else:
+        await interaction.response.send_message("❌ No announcement channel set. Use `/set_announcement_channel` to set one.")
 
 @bot.tree.command(name="add_channel_by_id", description="Add a channel by ID (fallback method).")
 @app_commands.describe(channel_id="Enter the channel ID as text")
