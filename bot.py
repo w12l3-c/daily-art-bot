@@ -30,7 +30,7 @@ time_debug = 30  # seconds
 time_deploy = 1 # hours
 
 # Configurable mod role name (case-insensitive)
-MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod"]
+MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]
 
 intents = discord.Intents.default()
 intents.members = True
