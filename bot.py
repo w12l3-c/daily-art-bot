@@ -29,7 +29,7 @@ time_debug = 30  # seconds
 time_deploy = 1 # hours
 
 # Configurable mod role name (case-insensitive)
-MOD_ROLE_NAME = ["wal"]
+MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod"]
 
 intents = discord.Intents.default()
 intents.members = True
@@ -171,12 +171,24 @@ async def on_ready():
         load_data()
         
         # Initialize duel system with tracked users reference
-        set_tracked_users_reference(tracked_users)
-        await register_duel_commands(bot)
+        try:
+            set_tracked_users_reference(tracked_users)
+            await register_duel_commands(bot)
+            print("✅ Duel commands registered successfully")
+            logger.info("Duel commands registered successfully")
+        except Exception as e:
+            print(f"❌ Failed to register duel commands: {e}")
+            logger.error(f"Failed to register duel commands: {e}")
         
         # Initialize chain system with tracked users reference
-        set_chain_tracked_users(tracked_users)
-        await register_chain_commands(bot)
+        try:
+            set_chain_tracked_users(tracked_users)
+            await register_chain_commands(bot)
+            print("✅ Chain commands registered successfully")
+            logger.info("Chain commands registered successfully")
+        except Exception as e:
+            print(f"❌ Failed to register chain commands: {e}")
+            logger.error(f"Failed to register chain commands: {e}")
         
         synced = await bot.tree.sync()  # Sync slash commands
         print(f"Synced {len(synced)} commands.")
@@ -217,12 +229,20 @@ async def on_message(message):
             user_data = tracked_users[message.author.id]
 
             if "#daily" in content_lower:
-                user_data['sent_image'] = True  # Mark as official art submission
-                print(f"✅ {message.author.name} submitted official art.")
-                logger.info(f"{message.author.name} submitted official art.")
-                await message.channel.send(f"🎨 {message.author.name}, your art has been recorded for today!")
+                if user_data['sent_image']:
+                    # User already submitted daily art, count this as buffer
+                    user_data['buffer'] = user_data.get('buffer', 0) + 1
+                    print(f"🛑 {message.author.name} submitted additional #daily art as buffer.")
+                    logger.info(f"{message.author.name} submitted additional #daily art as buffer.")
+                    await message.channel.send(f"📌 {message.author.name}, you've already submitted today's art! This has been recorded as buffer art.")
+                else:
+                    # First daily submission
+                    user_data['sent_image'] = True  # Mark as official art submission
+                    print(f"✅ {message.author.name} submitted official art.")
+                    logger.info(f"{message.author.name} submitted official art.")
+                    await message.channel.send(f"🎨 {message.author.name}, your art has been recorded for today!")
                 
-                # Update duel progress for this user
+                # Update duel progress for this user (regardless of buffer or daily)
                 updated_duels = update_duel_progress(message.author.id, datetime.now())
                 if updated_duels:
                     logger.info(f"Updated {len(updated_duels)} duels for {message.author.name}")
@@ -997,21 +1017,38 @@ async def ping_jailed_users():
 
     print(ping_users)
     logger.debug(f"Users to ping: {ping_users}")
+    
     if ping_users:
         now = datetime.now()
-        if now.hour == 22:  # Around 10 PM
-            print("Pinging jailed users...")
-            logger.info("Pinging jailed users...")
+        message = ""
+        
+        if now.hour == 22:  # 10 PM - 2 hours warning
+            print("Pinging jailed users (2 hour warning)...")
+            logger.info("Pinging jailed users (2 hour warning)...")
             message = "🚨 **Final Warning!** 🚨\n"
-
+            
             for user_id, user in tracked_users.items():
                 if user['ping'] and not user['sent_image']:
                     member = bot.get_user(user_id)
                     if member:
                         message += f"{member.mention} "
-
+            
             message += "\n**You roughly have 2 hours before you're shipped to the graveyard!!** 🪦"
             
+        elif now.hour == 23:  # 11 PM - 1 hour warning
+            print("Pinging jailed users (1 hour warning)...")
+            logger.info("Pinging jailed users (1 hour warning)...")
+            message = "⚠️ **FINAL HOUR WARNING!** ⚠️\n"
+            
+            for user_id, user in tracked_users.items():
+                if user['ping'] and not user['sent_image']:
+                    member = bot.get_user(user_id)
+                    if member:
+                        message += f"{member.mention} "
+            
+            message += "\n**You have approximately 1 hour before the graveyard!!** ⏰💀"
+        
+        if message:  # Only send if we have a message (10 PM or 11 PM)
             channel = bot.get_channel(announcement_channel)
             if channel:
                 await channel.send(message)
