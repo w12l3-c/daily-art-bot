@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import aiohttp
 import os
 import shutil
+import asyncio
 from duel import register_duel_commands, set_tracked_users_reference, update_duel_progress, cleanup_expired_duels, get_duel_rankings, get_duel_data, load_duel_data
 from chain import register_chain_commands, set_tracked_users_reference as set_chain_tracked_users, process_chain_submission, get_chain_data, load_chain_data  
 
@@ -131,7 +132,7 @@ def load_data():
             season = data.get("season", season)
             loaded_users = data.get("tracked_users", {})
             announcement_channel = data.get("announcement_channel", allowed_channels[0] if allowed_channels else None)
-            s
+            
             # Convert string keys back to integers (JSON stores dict keys as strings)
             tracked_users = {}
             for user_id_str, user_data in loaded_users.items():
@@ -190,12 +191,21 @@ async def on_ready():
             print(f"❌ Failed to register chain commands: {e}")
             logger.error(f"Failed to register chain commands: {e}")
         
-        synced = await bot.tree.sync()  # Sync slash commands
-        print(f"Synced {len(synced)} commands.")
-        logger.info(f"Synced {len(synced)} commands.")
+        # Small delay to ensure commands are properly registered before syncing
+        await asyncio.sleep(1)
+        
+        # Sync ALL commands (including duel and chain) AFTER registering them
+        try:
+            synced = await bot.tree.sync()  # Sync slash commands
+            print(f"Synced {len(synced)} commands.")
+            logger.info(f"Synced {len(synced)} commands.")
+        except Exception as e:
+            print(f"Error syncing commands: {e}")
+            logger.error(f"Error syncing commands: {e}")
+            
     except Exception as e:
-        print(f"Error syncing commands: {e}")
-        logger.error(f"Error syncing commands: {e}")
+        print(f"Error in on_ready: {e}")
+        logger.error(f"Error in on_ready: {e}")
 
     send_daily_art_message.start()
     save_data_task.start()
