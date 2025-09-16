@@ -274,7 +274,27 @@ async def on_message(message):
             elif "#chain" in content_lower:
                 # Handle chain submission
                 chain_processed = await process_chain_submission(message.author.id, message, message.attachments[0])
-                if not chain_processed:
+                
+                # Also count chain submissions towards daily/buffer art
+                if chain_processed:
+                    if user_data['sent_image']:
+                        # User already submitted daily art, count chain as buffer
+                        user_data['buffer'] = user_data.get('buffer', 0) + 1
+                        print(f"🔗 {message.author.name} submitted chain art as buffer (already has daily submission).")
+                        logger.info(f"{message.author.name} submitted chain art as buffer.")
+                        await message.channel.send(f"🔗 {message.author.name}, your chain submission has been recorded! This also counts as buffer art since you've already submitted today.")
+                    else:
+                        # First submission of the day, count as daily art
+                        user_data['sent_image'] = True
+                        print(f"🔗 {message.author.name} submitted chain art as daily submission.")
+                        logger.info(f"{message.author.name} submitted chain art as daily submission.")
+                        await message.channel.send(f"🔗 {message.author.name}, your chain submission has been recorded! This also counts as today's daily art.")
+                    
+                    # Update duel progress for chain submissions too
+                    updated_duels = update_duel_progress(message.author.id, datetime.now())
+                    if updated_duels:
+                        logger.info(f"Updated {len(updated_duels)} duels for {message.author.name} (chain submission)")
+                else:
                     # If chain processing failed and user didn't tag it as anything else, show the regular untagged message
                     if user_data['ping']:
                         await message.channel.send(f"⚠️ {message.author.name}, please tag your submission with `#daily` if it's an official art entry.")
