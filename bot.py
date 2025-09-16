@@ -30,7 +30,7 @@ time_debug = 30  # seconds
 time_deploy = 1 # hours
 
 # Configurable mod role name (case-insensitive)
-MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]
+MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, comparison is case-insensitive
 
 intents = discord.Intents.default()
 intents.members = True
@@ -55,8 +55,9 @@ def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     
     # Check for mod role (case-insensitive)
     if hasattr(interaction.user, 'roles'):
+        mod_roles_lower = [role.lower() for role in MOD_ROLE_NAME]
         for role in interaction.user.roles:
-            if role.name.lower() in MOD_ROLE_NAME:
+            if role.name.lower() in mod_roles_lower:
                 return True
     
     return False
@@ -69,8 +70,9 @@ def has_badge_permissions(member) -> bool:
     
     # Check for mod role (case-insensitive)
     if hasattr(member, 'roles'):
+        mod_roles_lower = [role.lower() for role in MOD_ROLE_NAME]
         for role in member.roles:
-            if role.name.lower() in MOD_ROLE_NAME:
+            if role.name.lower() in mod_roles_lower:
                 return True
     
     return False
@@ -124,7 +126,7 @@ async def handle_badge_upload(message):
         return True
 
 def load_data():
-    global current_day, season, tracked_users, announcement_channel
+    global current_day, season, tracked_users, announcement_channel, allowed_channels
     try:
         with open(saved_data, "r") as f:
             data = json.load(f)
@@ -132,6 +134,11 @@ def load_data():
             season = data.get("season", season)
             loaded_users = data.get("tracked_users", {})
             announcement_channel = data.get("announcement_channel", allowed_channels[0] if allowed_channels else None)
+            
+            # Load allowed_channels if it exists, otherwise keep the current one
+            loaded_allowed_channels = data.get("allowed_channels", allowed_channels)
+            if loaded_allowed_channels:
+                allowed_channels = loaded_allowed_channels
             
             # Convert string keys back to integers (JSON stores dict keys as strings)
             tracked_users = {}
@@ -154,6 +161,7 @@ def load_data():
             logger.info(f"Data loaded successfully! (Day {current_day}, Season {season})")
             logger.info(f"Loaded {len(tracked_users)} users with IDs: {list(tracked_users.keys())}")
             logger.info(f"Announcement channel set to: {announcement_channel}")
+            logger.info(f"Allowed channels: {allowed_channels}")
     except (FileNotFoundError, json.JSONDecodeError):
         print("⚠️ No save file found. Starting fresh.")
         logger.warning("No save file found. Starting fresh.")
@@ -1008,6 +1016,7 @@ async def save_data_task():
         "season": season,
         "tracked_users": tracked_users,
         "announcement_channel": announcement_channel,
+        "allowed_channels": allowed_channels,
         "duel": get_duel_data(),
         "chain": get_chain_data()
     }
@@ -1067,7 +1076,7 @@ async def ping_jailed_users():
 async def cleanup_duels():
     """Clean up expired duels every hour"""
     try:
-        cleaned = await cleanup_expired_duels(bot, allowed_channels)
+        cleaned = await cleanup_expired_duels(bot, allowed_channels, announcement_channel)
         if cleaned > 0:
             logger.info(f"Cleaned up {cleaned} expired duels")
     except Exception as e:
