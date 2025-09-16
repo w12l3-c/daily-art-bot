@@ -13,7 +13,12 @@ build:
 run: stop
 	@echo "Creating required files if they don't exist..."
 	@mkdir -p badges
-	@test -f backup.json || echo '{}' > backup.json
+	@if [ ! -f backup.json ]; then \
+		echo "Warning: backup.json doesn't exist, creating empty one..."; \
+		echo '{}' > backup.json; \
+	else \
+		echo "Using existing backup.json"; \
+	fi
 	@test -f bot.log || touch bot.log
 	docker run -d \
 	  --name $(IMAGE_NAME) \
@@ -49,7 +54,12 @@ status:
 setup:
 	@echo "Setting up required files and directories..."
 	@mkdir -p badges
-	@test -f backup.json || echo '{}' > backup.json
+	@if [ ! -f backup.json ]; then \
+		echo "Creating initial backup.json..."; \
+		echo '{}' > backup.json; \
+	else \
+		echo "backup.json already exists, preserving it."; \
+	fi
 	@test -f bot.log || touch bot.log
 	@test -f .env || cp .env.example .env
 	@echo "Setup complete! Make sure to edit .env with your bot token."

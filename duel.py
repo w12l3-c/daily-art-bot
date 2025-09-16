@@ -570,7 +570,7 @@ def determine_duel_winner(duel_data):
     
     return None, None, challenger_score, target_score, is_tie
 
-async def announce_duel_completion(duel_data, bot=None, allowed_channels=None):
+async def announce_duel_completion(duel_data, bot=None, allowed_channels=None, announcement_channel=None):
     """Announce duel completion to participants"""
     logger.info(f"Starting duel completion announcement for: {duel_data['challenger_name']} vs {duel_data['target_name']}")
     
@@ -600,24 +600,27 @@ async def announce_duel_completion(duel_data, bot=None, allowed_channels=None):
     
     logger.info(f"Duel completion message created: {len(completion_message)} characters")
     
-    # Post to the main channel instead of DMs
-    if bot and allowed_channels:
+    # Post to the announcement channel if available, otherwise fallback to first allowed channel
+    if bot:
         try:
-            # Get the first allowed channel (main art channel)
-            channel_id = allowed_channels[0]
-            channel = bot.get_channel(channel_id)
-            logger.info(f"Attempting to post to channel {channel_id}, found channel: {channel is not None}")
+            channel_id = announcement_channel if announcement_channel else (allowed_channels[0] if allowed_channels else None)
             
-            if channel:
-                await channel.send(completion_message)
-                logger.info(f"✅ Successfully posted duel completion to channel: {duel_data['challenger_name']} vs {duel_data['target_name']}")
-                print(f"✅ Duel completion message posted to channel!")
+            if channel_id:
+                channel = bot.get_channel(channel_id)
+                logger.info(f"Attempting to post to channel {channel_id}, found channel: {channel is not None}")
+                
+                if channel:
+                    await channel.send(completion_message)
+                    logger.info(f"✅ Successfully posted duel completion to channel: {duel_data['challenger_name']} vs {duel_data['target_name']}")
+                    print(f"✅ Duel completion message posted to channel!")
+                else:
+                    logger.error(f"❌ Could not find channel {channel_id}")
             else:
-                logger.error(f"❌ Could not find channel {channel_id}")
+                logger.error(f"❌ No announcement channel or allowed channels available")
         except Exception as e:
             logger.error(f"❌ Failed to post duel completion to channel: {e}")
     else:
-        logger.warning(f"⚠️ Missing bot ({bot is not None}) or allowed_channels ({allowed_channels is not None})")
+        logger.warning(f"⚠️ No bot instance provided to announce_duel_completion")
     
     return completion_message
 
@@ -676,7 +679,7 @@ def update_duel_progress(user_id: int, submission_time: datetime = None):
     return updated_duels
 
 # Cleanup function to remove expired duels
-async def cleanup_expired_duels(bot=None, allowed_channels=None):
+async def cleanup_expired_duels(bot=None, allowed_channels=None, announcement_channel=None):
     """Remove expired pending duels and completed active duels"""
     current_time = datetime.now()
     
@@ -697,7 +700,7 @@ async def cleanup_expired_duels(bot=None, allowed_channels=None):
         logger.info(f"Duel completed: {duel['challenger_name']} vs {duel['target_name']}")
         
         # Announce completion to both participants
-        await announce_duel_completion(duel, bot, allowed_channels)
+        await announce_duel_completion(duel, bot, allowed_channels, announcement_channel)
         
         del active_duels[duel_id]
     
