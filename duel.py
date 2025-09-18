@@ -88,15 +88,17 @@ async def validate_duel_challenge(challenger_id: int, target_id: int, duel_type:
     if challenger_id == target_id:
         return False, "❌ You cannot duel yourself!"
     
-    # Check if either user already has a pending duel
+    # Check if users are trying to duel the same person they already have a duel with
     for duel_id, duel in pending_duels.items():
-        if challenger_id in [duel['challenger'], duel['target']] or target_id in [duel['challenger'], duel['target']]:
-            return False, "❌ One of the users already has a pending duel."
+        if (challenger_id == duel['challenger'] and target_id == duel['target']) or \
+           (challenger_id == duel['target'] and target_id == duel['challenger']):
+            return False, "❌ You already have a pending duel with this person."
     
-    # Check if either user is in an active duel
+    # Check if users are trying to duel the same person they already have an active duel with
     for duel_id, duel in active_duels.items():
-        if challenger_id in [duel['challenger'], duel['target']] or target_id in [duel['challenger'], duel['target']]:
-            return False, "❌ One of the users is already in an active duel."
+        if (challenger_id == duel['challenger'] and target_id == duel['target']) or \
+           (challenger_id == duel['target'] and target_id == duel['challenger']):
+            return False, "❌ You already have an active duel with this person."
     
     # Validate duel type
     if duel_type not in [DuelType.VOLUME, DuelType.STREAK, DuelType.TIME]:

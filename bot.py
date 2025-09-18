@@ -82,13 +82,13 @@ async def handle_badge_upload(message):
     # Check if user has permissions
     member = message.author
     if not has_badge_permissions(member):
-        await message.channel.send(f"❌ {member.name}, you need administrator permissions or mod role to upload badges.")
+        await message.channel.send(f"❌ {member.display_name}, you need administrator permissions or mod role to upload badges.")
         return True  # Return True to indicate message was handled
     
     # Check if attachment is PNG
     attachment = message.attachments[0]
     if not attachment.filename.lower().endswith('.png'):
-        await message.channel.send(f"❌ {member.name}, badges must be PNG files.")
+        await message.channel.send(f"❌ {member.display_name}, badges must be PNG files.")
         return True
     
     try:
@@ -113,16 +113,16 @@ async def handle_badge_upload(message):
                     with open(badge_path, 'wb') as f:
                         f.write(await resp.read())
                     
-                    await message.channel.send(f"🏆 {member.name}, badge '{attachment.filename}' has been uploaded successfully!")
+                    await message.channel.send(f"🏆 {member.display_name}, badge '{attachment.filename}' has been uploaded successfully!")
                     logger.info(f"Badge uploaded: {attachment.filename} by {member.name}")
                     return True
                 else:
-                    await message.channel.send(f"❌ {member.name}, failed to download the badge image.")
+                    await message.channel.send(f"❌ {member.display_name}, failed to download the badge image.")
                     return True
     
     except Exception as e:
         logger.error(f"Error uploading badge: {e}")
-        await message.channel.send(f"❌ {member.name}, there was an error uploading the badge.")
+        await message.channel.send(f"❌ {member.display_name}, there was an error uploading the badge.")
         return True
 
 def load_data():
@@ -234,8 +234,27 @@ async def on_message(message):
         nickname = member.nick if member and member.nick else member.name
         await message.channel.send(f"Hi! {nickname} <3")
 
-    # Check if the message has an image and if the user is being tracked
-    if message.attachments and any(attachment.content_type.startswith("image/") for attachment in message.attachments):
+    # Check if the message has an image/video attachment or is a forwarded message with media
+    has_media = False
+    if message.attachments:
+        # Check for images and mp4 videos
+        has_media = any(
+            attachment.content_type.startswith("image/") or 
+            attachment.content_type.startswith("video/mp4") or
+            attachment.filename.lower().endswith(('.mp4', '.mov'))
+            for attachment in message.attachments
+        )
+    
+    # Also check if it's a forwarded message with embeds that might contain media
+    if not has_media and message.embeds:
+        has_media = any(
+            embed.type in ['image', 'video'] or 
+            (embed.image and embed.image.url) or 
+            (embed.video and embed.video.url)
+            for embed in message.embeds
+        )
+    
+    if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
         
         # Handle badge uploads (specific role required)
@@ -252,13 +271,13 @@ async def on_message(message):
                     user_data['buffer'] = user_data.get('buffer', 0) + 1
                     print(f"🛑 {message.author.name} submitted additional #daily art as buffer.")
                     logger.info(f"{message.author.name} submitted additional #daily art as buffer.")
-                    await message.channel.send(f"📌 {message.author.name}, you've already submitted today's art! This has been recorded as buffer art.")
+                    await message.channel.send(f"📌 {message.author.display_name}, you've already submitted today's art! This has been recorded as buffer art.")
                 else:
                     # First daily submission
                     user_data['sent_image'] = True  # Mark as official art submission
                     print(f"✅ {message.author.name} submitted official art.")
                     logger.info(f"{message.author.name} submitted official art.")
-                    await message.channel.send(f"🎨 {message.author.name}, your art has been recorded for today!")
+                    await message.channel.send(f"🎨 {message.author.display_name}, your art has been recorded for today!")
                 
                 # Update duel progress for this user (regardless of buffer or daily)
                 updated_duels = update_duel_progress(message.author.id, datetime.now())
@@ -269,11 +288,12 @@ async def on_message(message):
                 user_data['buffer'] = user_data.get('buffer', 0) + 1  # Increase buffer count
                 print(f"🛑 {message.author.name} submitted buffer art.")
                 logger.info(f"{message.author.name} submitted buffer art.")
-                await message.channel.send(f"📌 {message.author.name}, your buffer art has been recorded! This will not count for today's submission.")
+                await message.channel.send(f"📌 {message.author.display_name}, your buffer art has been recorded! This will not count for today's submission.")
 
             elif "#chain" in content_lower:
-                # Handle chain submission
-                chain_processed = await process_chain_submission(message.author.id, message, message.attachments[0])
+                # Handle chain submission - pass the first attachment if available, or None for forwarded messages
+                first_attachment = message.attachments[0] if message.attachments else None
+                chain_processed = await process_chain_submission(message.author.id, message, first_attachment)
                 
                 # Also count chain submissions towards daily/buffer art
                 if chain_processed:
@@ -282,13 +302,13 @@ async def on_message(message):
                         user_data['buffer'] = user_data.get('buffer', 0) + 1
                         print(f"🔗 {message.author.name} submitted chain art as buffer (already has daily submission).")
                         logger.info(f"{message.author.name} submitted chain art as buffer.")
-                        await message.channel.send(f"🔗 {message.author.name}, your chain submission has been recorded! This also counts as buffer art since you've already submitted today.")
+                        await message.channel.send(f"🔗 {message.author.display_name}, your chain submission has been recorded! This also counts as buffer art since you've already submitted today.")
                     else:
                         # First submission of the day, count as daily art
                         user_data['sent_image'] = True
                         print(f"🔗 {message.author.name} submitted chain art as daily submission.")
                         logger.info(f"{message.author.name} submitted chain art as daily submission.")
-                        await message.channel.send(f"🔗 {message.author.name}, your chain submission has been recorded! This also counts as today's daily art.")
+                        await message.channel.send(f"🔗 {message.author.display_name}, your chain submission has been recorded! This also counts as today's daily art.")
                     
                     # Update duel progress for chain submissions too
                     updated_duels = update_duel_progress(message.author.id, datetime.now())
@@ -297,13 +317,13 @@ async def on_message(message):
                 else:
                     # If chain processing failed and user didn't tag it as anything else, show the regular untagged message
                     if user_data['ping']:
-                        await message.channel.send(f"⚠️ {message.author.name}, please tag your submission with `#daily` if it's an official art entry.")
+                        await message.channel.send(f"⚠️ {message.author.display_name}, please tag your submission with `#daily` if it's an official art entry.")
 
             else:
                 print(f"📸 {message.author.name} uploaded an image but didn't tag it as art.")
                 logger.info(f"{message.author.name} uploaded an image but didn't tag it as art.")
                 if user_data['ping']:
-                    await message.channel.send(f"⚠️ {message.author.name}, please tag your submission with `#daily` if it's an official art entry.")
+                    await message.channel.send(f"⚠️ {message.author.display_name}, please tag your submission with `#daily` if it's an official art entry.")
 
     # Process other commands
     await bot.process_commands(message)
