@@ -501,3 +501,16 @@ def load_chain_data(chain_data):
         # For now, we just skip loading submissions data
     
     logger.info(f"Loaded {len(active_chains)} chains")
+
+def clear_all_chains():
+    """Clear all active chains and submissions (used for season reset or manual cleanup)"""
+    global active_chains, chain_submissions
+    
+    chains_count = len(active_chains)
+    submissions_count = sum(len(subs) for subs in chain_submissions.values())
+    
+    active_chains.clear()
+    chain_submissions.clear()
+    
+    logger.info(f"Cleared {chains_count} chains and {submissions_count} submissions")
+    return chains_count, submissions_count

@@ -47,6 +47,34 @@ season_theme = "Testing"
 season_days = 50
 saved_data = "backup.json"
 
+def reset_user_stats():
+    """Reset all user stats for a new season while preserving core identity info"""
+    for user in tracked_users.values():
+        # Keep these fields (user identity and preferences)
+        username = user['username']
+        user_nickname = user['user_nickname'] 
+        ping = user['ping']
+        
+        # Reset all stats to starting values
+        user.update({
+            'username': username,
+            'user_nickname': user_nickname,
+            'sent_image': False,
+            'parole_days': 0,
+            'deceased': False,
+            'deceased_days': 0,
+            'missing_days': 0,
+            'revival': 0,
+            'buffer': 0,
+            'probation': False,
+            'ping': ping,
+            'duels_won': 0,
+            'duels_lost': 0
+        })
+    
+    logger.info(f"Reset stats for {len(tracked_users)} users for new season")
+    print(f"✅ Reset stats for {len(tracked_users)} users for new season")
+
 def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     """Check if user has administrator permissions or mod role"""
     # Check for administrator permissions
@@ -870,6 +898,103 @@ async def badge_help(interaction: discord.Interaction):
     
     await interaction.response.send_message(help_message, ephemeral=True)
 
+@bot.tree.command(name="clear_duels_and_chains", description="Clear all active duels and chains (Admin only).")
+async def clear_duels_and_chains(interaction: discord.Interaction):
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    # Defer the response since this might take a moment
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        # Clear all duels
+        cleared_duels = 0
+        try:
+            from duel import clear_all_duels
+            cleared_duels = clear_all_duels()
+        except Exception as e:
+            logger.warning(f"Could not clear duels: {e}")
+        
+        # Clear all chains
+        cleared_chains = 0
+        cleared_submissions = 0
+        try:
+            from chain import clear_all_chains
+            cleared_chains, cleared_submissions = clear_all_chains()
+        except Exception as e:
+            logger.warning(f"Could not clear chains: {e}")
+        
+        success_message = f"✅ **Duels and Chains cleared!**\n\n"
+        success_message += f"⚔️ **Duels cleared:** {cleared_duels}\n"
+        success_message += f"🔗 **Chains cleared:** {cleared_chains}\n"
+        success_message += f"📸 **Submissions cleared:** {cleared_submissions}\n\n"
+        success_message += f"🧹 All active duels and chains have been removed!"
+        
+        await interaction.followup.send(success_message, ephemeral=True)
+        
+        # Also announce in the announcement channel if configured
+        if announcement_channel:
+            channel = bot.get_channel(announcement_channel)
+            if channel:
+                announce_message = f"🧹 **Duels & Chains Cleared** 🧹\n"
+                announce_message += f"All active duels and art chains have been cleared by {interaction.user.display_name}.\n"
+                if cleared_duels > 0 or cleared_chains > 0:
+                    announce_message += f"⚔️ {cleared_duels} duels and 🔗 {cleared_chains} chains were removed."
+                else:
+                    announce_message += f"No active duels or chains were found."
+                await channel.send(announce_message)
+        
+        logger.info(f"Admin {interaction.user.name} cleared {cleared_duels} duels and {cleared_chains} chains")
+        
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error clearing duels and chains: {e}", ephemeral=True)
+        logger.error(f"Error clearing duels and chains: {e}")
+
+@bot.tree.command(name="reset_season_stats", description="Reset all user stats for new season (Admin only).")
+async def reset_season_stats(interaction: discord.Interaction):
+    # Check if user has admin permissions or mod role
+    if not has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    # Defer the response since this might take a moment
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        # Reset all user stats
+        user_count = len(tracked_users)
+        reset_user_stats()
+        
+        # Clear all duels
+        cleared_duels = 0
+        try:
+            from duel import clear_all_duels
+            cleared_duels = clear_all_duels()
+        except Exception as e:
+            logger.warning(f"Could not clear duels: {e}")
+        
+        success_message = f"✅ **Season stats reset completed!**\n"
+        success_message += f"📊 Reset stats for {user_count} users\n"
+        success_message += f"⚔️ Cleared {cleared_duels} duels\n"
+        success_message += f"🔄 All users now have fresh stats for the new season!"
+        
+        await interaction.followup.send(success_message, ephemeral=True)
+        
+        # Also announce in the announcement channel if configured
+        if announcement_channel:
+            channel = bot.get_channel(announcement_channel)
+            if channel:
+                announce_message = f"🔄 **Season Stats Reset** 🔄\n"
+                announce_message += f"All user stats have been manually reset by {interaction.user.display_name}!\n"
+                announce_message += f"Everyone starts fresh! 🎉"
+                await channel.send(announce_message)
+        
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error resetting season stats: {e}", ephemeral=True)
+        logger.error(f"Error resetting season stats: {e}")
+
 @bot.tree.command(name="season_info", description="Show current season information.")
 async def season_info(interaction: discord.Interaction):
     info_message = (
@@ -1083,10 +1208,22 @@ async def send_daily_art_message():
             results_message += f"🎨 **The {season_theme} badge** 🎨\n"
             await channel.send(results_message, file=badge)
 
+            # Reset all user stats for the new season
+            reset_user_stats()
+            
+            # Clear any active duels for the new season
+            try:
+                from duel import clear_all_duels
+                clear_all_duels()
+                logger.info("Cleared all active duels for new season")
+            except Exception as e:
+                logger.warning(f"Could not clear duels for new season: {e}")
+
             current_day = 1
             season += 1
             season_theme = f"{season_theme}"
             season_message = f"# 🎉 **Season {season} begins tomorrow!** 🎉\n"
+            season_message += f"📊 **All user stats have been reset!** Fresh start for everyone! 🔄\n"
             await channel.send(season_message)
 
         for user in tracked_users.values():

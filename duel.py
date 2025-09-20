@@ -764,3 +764,16 @@ def load_duel_data(duel_data):
     
     logger.info(f"Loaded {len(pending_duels)} pending duels and {len(active_duels)} active duels")
 
+def clear_all_duels():
+    """Clear all active and pending duels (used for new season reset)"""
+    global pending_duels, active_duels
+    
+    pending_count = len(pending_duels)
+    active_count = len(active_duels)
+    
+    pending_duels.clear()
+    active_duels.clear()
+    
+    logger.info(f"Cleared {pending_count} pending duels and {active_count} active duels for new season")
+    return pending_count + active_count
+
