@@ -798,14 +798,18 @@ async def sync_commands(interaction: discord.Interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
     
+    # Defer the response to prevent timeout
+    await interaction.response.defer(ephemeral=True)
+    
     try:
         # Try guild-specific sync first (faster)
         guild = interaction.guild
+        await interaction.followup.send("🔄 Syncing commands to this server...", ephemeral=True)
         synced = await bot.tree.sync(guild=guild)
-        await interaction.response.send_message(f"✅ Successfully synced {len(synced)} commands to this server!", ephemeral=True)
+        await interaction.followup.send(f"✅ Successfully synced {len(synced)} commands to this server!", ephemeral=True)
         logger.info(f"Commands manually synced to guild {guild.name} by {interaction.user.name}: {len(synced)} commands")
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error syncing commands: {e}", ephemeral=True)
+        await interaction.followup.send(f"❌ Error syncing commands: {e}", ephemeral=True)
         logger.error(f"Error manually syncing commands: {e}")
 
 @bot.tree.command(name="sync_global", description="Force sync commands globally (Admin only, slower).")
@@ -815,12 +819,16 @@ async def sync_global(interaction: discord.Interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
     
+    # Defer the response since global sync can take a while
+    await interaction.response.defer(ephemeral=True)
+    
     try:
+        await interaction.followup.send("🔄 Starting global command sync... This may take a moment.", ephemeral=True)
         synced = await bot.tree.sync()
-        await interaction.response.send_message(f"✅ Successfully synced {len(synced)} commands globally!", ephemeral=True)
+        await interaction.followup.send(f"✅ Successfully synced {len(synced)} commands globally!", ephemeral=True)
         logger.info(f"Commands manually synced globally by {interaction.user.name}: {len(synced)} commands")
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error syncing commands: {e}", ephemeral=True)
+        await interaction.followup.send(f"❌ Error syncing commands: {e}", ephemeral=True)
         logger.error(f"Error manually syncing commands: {e}")
 
 @bot.tree.command(name="list_badges", description="List all available badges.")
