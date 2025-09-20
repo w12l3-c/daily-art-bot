@@ -554,6 +554,56 @@ async def remove_user(interaction: discord.Interaction, user: discord.User):
     else:
         await interaction.response.send_message("❌ User not found in tracking.")
 
+@bot.tree.command(name="join", description="Join the daily art tracking system yourself!")
+async def join_tracking(interaction: discord.Interaction):
+    user = interaction.user
+    member = await interaction.guild.fetch_member(user.id)
+    user_nickname = member.nick if member and member.nick else user.name
+    
+    if user.id not in tracked_users:
+        tracked_users[user.id] = {
+            'username': user.name,
+            'user_nickname': user_nickname,
+            'sent_image': False,
+            'parole_days': 0,
+            'deceased': False,
+            'deceased_days': 0,
+            'missing_days': 0,
+            'revival': 0,
+            'buffer': 0,
+            'probation': False,
+            'ping': True,  # Enable pings by default for self-joining users
+            'duels_won': 0,
+            'duels_lost': 0
+        }
+        await interaction.response.send_message(f"🎨 Welcome to daily art tracking, {user_nickname}! You'll now be tracked for daily submissions and can participate in duels and chains. Good luck with your art journey!", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"⚠️ You're already being tracked in the daily art system!", ephemeral=True)
+
+@bot.tree.command(name="leave", description="Leave the daily art tracking system.")
+async def leave_tracking(interaction: discord.Interaction):
+    user = interaction.user
+    
+    if user.id in tracked_users:
+        # Show final stats before leaving
+        user_data = tracked_users[user.id]
+        stats_message = (
+            f"📊 **Your Final Stats:**\n"
+            f"🎨 Parole Days: {user_data.get('parole_days', 0)}\n"
+            f"💀 Deceased Days: {user_data.get('deceased_days', 0)}\n"
+            f"📅 Missing Days: {user_data.get('missing_days', 0)}\n"
+            f"🔄 Revivals: {user_data.get('revival', 0)}\n"
+            f"🛑 Buffer Art: {user_data.get('buffer', 0)}\n"
+            f"⚔️ Duels Won: {user_data.get('duels_won', 0)}\n"
+            f"⚔️ Duels Lost: {user_data.get('duels_lost', 0)}\n\n"
+            f"Thanks for participating in daily art tracking! You can rejoin anytime with `/join`."
+        )
+        
+        del tracked_users[user.id]
+        await interaction.response.send_message(stats_message, ephemeral=True)
+    else:
+        await interaction.response.send_message("❌ You're not currently being tracked in the daily art system.", ephemeral=True)
+
 @bot.tree.command(name="list_users", description="List all users being tracked.")
 async def list_users(interaction: discord.Interaction):
     # Check if user has admin permissions or mod role
@@ -939,14 +989,18 @@ async def send_daily_art_message():
         logger.error(f"Announcement channel {announcement_channel} not found or not accessible")
         return
 
-    # Daily reset logic at 12:30 am, run loop of 30 min, check if time // 30 == 0 and hour == 1
+    # Daily reset logic at 12:30 AM EST (4:30 AM UTC) - only run once per day
     now = datetime.now()   
-    if now.hour == 0 and now.minute >= 30:
+    print(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
+    logger.info(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
+    
+    # EST is UTC-4, so 12:30 AM EST = 4:30 AM UTC
+    if now.hour == 4 and 30 <= now.minute < 35:  # 12:30 AM EST (4:30 AM UTC)
         # Only send daily message and advance day if there are tracked users
         if tracked_users:
             if channel:
-                print("Sending daily art message...")
-                logger.info("Sending daily art message...")
+                print("Sending daily art message - 12:30 AM EST...")
+                logger.info("Sending daily art message - 12:30 AM EST...")
                 await channel.send(message)
 
             print(f"Day {current_day} has ended!")
@@ -1041,10 +1095,15 @@ async def send_daily_art_message():
                     user['deceased'] = False
                 if user['missing_days'] > 0:
                     user['missing_days'] -= 1
-            if user['missing_days'] > 0:
+                    
+            # Auto-consume buffer for everyone with missing days (restored automatic behavior)
+            if user['missing_days'] > 0 and user['buffer'] > 0:
                 reduction = min(user['missing_days'], user['buffer'])
                 user['missing_days'] -= reduction
                 user['buffer'] -= reduction
+                logger.info(f"Auto-consumed {reduction} buffer for {user['user_nickname']} to reduce missing days")
+                
+            # Reset daily submission flag for next day
             user['sent_image'] = False
         
 
@@ -1067,50 +1126,62 @@ async def save_data_task():
     print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-@tasks.loop(hours=time_deploy)  # Save data every hour
+@tasks.loop(minutes=30)  # Check every 30 minutes to catch both warning times
 async def ping_jailed_users():
-    ping_users = []
-    for user_id, user in tracked_users.items():
-        if user['ping'] and not user['sent_image']:
-            ping_users.append(user_id)
-
-    print(ping_users)
-    logger.debug(f"Users to ping: {ping_users}")
+    now = datetime.now()
+    # Add detailed time logging for debugging
+    print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
+    logger.info(f"ping_jailed_users check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
     
-    if ping_users:
-        now = datetime.now()
-        message = ""
+    message = ""
+    
+    # EST is UTC-4, so 10:30 PM EST = 2:30 AM UTC, 11:30 PM EST = 3:30 AM UTC
+    if now.hour == 2 and 30 <= now.minute < 35:  # 10:30 PM EST (2:30 AM UTC)
+        print("Sending first warning message - 10:30 PM EST...")
+        logger.info("Sending first warning message - 10:30 PM EST...")
+        message = "🚨 **Daily Art Reminder!** 🚨\n"
+        message += "**You have roughly 2 hours before the daily reset!** ⏰\n\n"
         
-        if now.hour == 22:  # 10 PM - 2 hours warning
-            print("Pinging jailed users (2 hour warning)...")
-            logger.info("Pinging jailed users (2 hour warning)...")
-            message = "🚨 **Final Warning!** 🚨\n"
-            
-            for user_id, user in tracked_users.items():
-                if user['ping'] and not user['sent_image']:
-                    member = bot.get_user(user_id)
-                    if member:
-                        message += f"{member.mention} "
-            
-            message += "\n**You roughly have 2 hours before you're shipped to the graveyard!!** 🪦"
-            
-        elif now.hour == 23:  # 11 PM - 1 hour warning
-            print("Pinging jailed users (1 hour warning)...")
-            logger.info("Pinging jailed users (1 hour warning)...")
-            message = "⚠️ **FINAL HOUR WARNING!** ⚠️\n"
-            
-            for user_id, user in tracked_users.items():
-                if user['ping'] and not user['sent_image']:
-                    member = bot.get_user(user_id)
-                    if member:
-                        message += f"{member.mention} "
-            
-            message += "\n**You have approximately 1 hour before the graveyard!!** ⏰💀"
+        # Find users who need to submit
+        ping_users = []
+        for user_id, user in tracked_users.items():
+            if user['ping'] and not user['sent_image']:
+                member = bot.get_user(user_id)
+                if member:
+                    ping_users.append(member.mention)
         
-        if message:  # Only send if we have a message (10 PM or 11 PM)
-            channel = bot.get_channel(announcement_channel)
-            if channel:
-                await channel.send(message)
+        if ping_users:
+            message += f"Haven't submitted today: {' '.join(ping_users)}\n"
+            message += "**Don't forget to submit your daily art! 🎨**"
+        else:
+            message += "**Great job everyone! All tracked users have submitted their art today! 🎉**"
+        
+    elif now.hour == 3 and 30 <= now.minute < 35:  # 11:30 PM EST (3:30 AM UTC)
+        print("Sending final warning message - 11:30 PM EST...")
+        logger.info("Sending final warning message - 11:30 PM EST...")
+        message = "⚠️ **FINAL HOUR WARNING!** ⚠️\n"
+        message += "**You have approximately 1 hour before the daily reset!** ⏰💀\n\n"
+        
+        # Find users who need to submit
+        ping_users = []
+        for user_id, user in tracked_users.items():
+            if user['ping'] and not user['sent_image']:
+                member = bot.get_user(user_id)
+                if member:
+                    ping_users.append(member.mention)
+        
+        if ping_users:
+            message += f"Still need to submit: {' '.join(ping_users)}\n"
+            message += "**Last chance to avoid the graveyard! Submit your art NOW! 🏃‍♂️💨**"
+        else:
+            message += "**Excellent! All tracked users are safe for today! 🎨✅**"
+    
+    if message:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
+        channel = bot.get_channel(announcement_channel)
+        if channel:
+            await channel.send(message)
+        else:
+            logger.error(f"Could not send warning message - announcement channel {announcement_channel} not found")
 
 @tasks.loop(hours=time_deploy)  # Check every hour for expired duels
 async def cleanup_duels():
