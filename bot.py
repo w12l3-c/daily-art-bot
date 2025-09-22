@@ -47,6 +47,11 @@ season_theme = "Testing"
 season_days = 50
 saved_data = "backup.json"
 
+# Track when messages were last sent to prevent duplicates
+last_daily_message_day = -1
+last_warning_1_day = -1
+last_warning_2_day = -1
+
 def reset_user_stats():
     """Reset all user stats for a new season while preserving core identity info"""
     for user in tracked_users.values():
@@ -1087,7 +1092,7 @@ async def set_season_number(interaction: discord.Interaction, season_num: int):
 # Edit the seconds 
 @tasks.loop(minutes=30)  # Save data every 8 hours
 async def send_daily_art_message():
-    global current_day, season, season_theme, season_days
+    global current_day, season, season_theme, season_days, last_daily_message_day
 
     users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
     users_sent = [u for u in tracked_users.values() if u['sent_image']]
@@ -1117,24 +1122,27 @@ async def send_daily_art_message():
     
     message += "\n" + "☁️"*20
 
-    channel = bot.get_channel(announcement_channel)
-    if not channel:
-        logger.error(f"Announcement channel {announcement_channel} not found or not accessible")
-        return
-
     # Daily reset logic at 12:30 AM EST (4:30 AM UTC) - only run once per day
     now = datetime.now()   
     print(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
     logger.info(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
     
-    # EST is UTC-4, so 12:30 AM EST = 4:30 AM UTC
-    if now.hour == 4 and 30 <= now.minute < 35:  # 12:30 AM EST (4:30 AM UTC)
+    # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
+    # 30-minute window centered around 12:30 AM EST
+    if now.hour == 4 and 15 <= now.minute < 45 and last_daily_message_day != current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+        last_daily_message_day = current_day
+        
+        # Get channel for sending message
+        channel = bot.get_channel(announcement_channel)
+        
         # Only send daily message and advance day if there are tracked users
         if tracked_users:
             if channel:
                 print("Sending daily art message - 12:30 AM EST...")
                 logger.info("Sending daily art message - 12:30 AM EST...")
                 await channel.send(message)
+            else:
+                logger.error(f"Could not send daily message - announcement channel {announcement_channel} not found")
 
             print(f"Day {current_day} has ended!")
             logger.info(f"Day {current_day} has ended!")
@@ -1273,6 +1281,8 @@ async def save_data_task():
 
 @tasks.loop(minutes=30)  # Check every 30 minutes to catch both warning times
 async def ping_jailed_users():
+    global last_warning_1_day, last_warning_2_day
+    
     now = datetime.now()
     # Add detailed time logging for debugging
     print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
@@ -1280,10 +1290,12 @@ async def ping_jailed_users():
     
     message = ""
     
-    # EST is UTC-4, so 10:30 PM EST = 2:30 AM UTC, 11:30 PM EST = 3:30 AM UTC
-    if now.hour == 2 and 30 <= now.minute < 35:  # 10:30 PM EST (2:30 AM UTC)
-        print("Sending first warning message - 10:30 PM EST...")
-        logger.info("Sending first warning message - 10:30 PM EST...")
+    # EST is UTC-4, so 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
+    # 30-minute windows as requested
+    if now.hour == 2 and now.minute < 30 and last_warning_1_day != current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
+        print("Sending first warning message - 10:00-10:30 PM EST...")
+        logger.info("Sending first warning message - 10:00-10:30 PM EST...")
+        last_warning_1_day = current_day
         message = "🚨 **Daily Art Reminder!** 🚨\n"
         message += "**You have roughly 2 hours before the daily reset!** ⏰\n\n"
         
@@ -1301,9 +1313,10 @@ async def ping_jailed_users():
         else:
             message += "**Great job everyone! All tracked users have submitted their art today! 🎉**"
         
-    elif now.hour == 3 and 30 <= now.minute < 35:  # 11:30 PM EST (3:30 AM UTC)
-        print("Sending final warning message - 11:30 PM EST...")
-        logger.info("Sending final warning message - 11:30 PM EST...")
+    elif now.hour == 3 and now.minute < 30 and last_warning_2_day != current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
+        print("Sending final warning message - 11:00-11:30 PM EST...")
+        logger.info("Sending final warning message - 11:00-11:30 PM EST...")
+        last_warning_2_day = current_day
         message = "⚠️ **FINAL HOUR WARNING!** ⚠️\n"
         message += "**You have approximately 1 hour before the daily reset!** ⏰💀\n\n"
         
