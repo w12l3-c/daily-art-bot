@@ -80,6 +80,37 @@ def reset_user_stats():
     logger.info(f"Reset stats for {len(tracked_users)} users for new season")
     print(f"✅ Reset stats for {len(tracked_users)} users for new season")
 
+async def get_daily_art_message():
+    """Generate the daily art message showing jail status"""
+    users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
+    users_sent = [u for u in tracked_users.values() if u['sent_image']]
+    
+    message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
+    message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
+    message += "\n**⛓️ Jailed:**\n"
+    message += "🧱"*20 + "\n"
+
+    for user in users_not_sent:
+        if not user['deceased']:
+            message += f"|| {user['user_nickname']} 💨{user['missing_days']} || "
+        if user != users_not_sent[-1]:
+            message += r"\| "
+
+    message += "\n" + "🧱"*20 + "\n"
+    
+    message += "\n**🪦 Deceased:**\n"
+    message += "☁️"*20 + "\n"
+    
+    for user in users_not_sent:
+        if user['deceased']:
+            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']}) || "
+        if user != users_not_sent[-1]:
+            message += r"\| "
+    
+    message += "\n" + "☁️"*20
+    
+    return message
+
 def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     """Check if user has administrator permissions or mod role"""
     # Check for administrator permissions
@@ -1128,7 +1159,7 @@ async def send_daily_art_message():
     logger.info(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
     
     # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
-    # 30-minute window centered around 12:30 AM EST
+    # 30-minute window centered around 12:30 AM EST - ONLY ADVANCE DAY (no message sent)
     if now.hour == 4 and 15 <= now.minute < 45 and last_daily_message_day != current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
         last_daily_message_day = current_day
         
@@ -1214,7 +1245,13 @@ async def send_daily_art_message():
             
             results_message += f"\nCongratulations to all participants! See you all next season🎉\n"
             results_message += f"🎨 **The {season_theme} badge** 🎨\n"
-            await channel.send(results_message, file=badge)
+            
+            # Get channel for season end messages
+            channel = bot.get_channel(announcement_channel)
+            if channel:
+                await channel.send(results_message, file=badge)
+            else:
+                logger.error(f"Could not send season end results - announcement channel {announcement_channel} not found")
 
             # Reset all user stats for the new season
             reset_user_stats()
@@ -1232,7 +1269,11 @@ async def send_daily_art_message():
             season_theme = f"{season_theme}"
             season_message = f"# 🎉 **Season {season} begins tomorrow!** 🎉\n"
             season_message += f"📊 **All user stats have been reset!** Fresh start for everyone! 🔄\n"
-            await channel.send(season_message)
+            
+            if channel:
+                await channel.send(season_message)
+            else:
+                logger.error(f"Could not send new season message - announcement channel {announcement_channel} not found")
 
         for user in tracked_users.values():
             if not user['sent_image']:
@@ -1279,6 +1320,7 @@ async def save_data_task():
     print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
+
 @tasks.loop(minutes=30)  # Check every 30 minutes to catch both warning times
 async def ping_jailed_users():
     global last_warning_1_day, last_warning_2_day
@@ -1290,13 +1332,20 @@ async def ping_jailed_users():
     
     message = ""
     
-    # EST is UTC-4, so 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
-    # 30-minute windows as requested
+    # EST is UTC-5 in standard time (winter), UTC-4 in daylight time (summer)
+    # For now, using UTC-4 (EDT) - 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
+    
+    # Send daily art message WITH warnings at 10-10:30 PM EST and 11-11:30 PM EST
     if now.hour == 2 and now.minute < 30 and last_warning_1_day != current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
-        print("Sending first warning message - 10:00-10:30 PM EST...")
-        logger.info("Sending first warning message - 10:00-10:30 PM EST...")
+        print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
+        logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         last_warning_1_day = current_day
-        message = "🚨 **Daily Art Reminder!** 🚨\n"
+        
+        # Get the daily art message from get_daily_art_message function  
+        message = await get_daily_art_message()
+        
+        # Add warning message
+        message += "\n\n🚨 **Daily Art Reminder!** 🚨\n"
         message += "**You have roughly 2 hours before the daily reset!** ⏰\n\n"
         
         # Find users who need to submit
@@ -1314,10 +1363,15 @@ async def ping_jailed_users():
             message += "**Great job everyone! All tracked users have submitted their art today! 🎉**"
         
     elif now.hour == 3 and now.minute < 30 and last_warning_2_day != current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
-        print("Sending final warning message - 11:00-11:30 PM EST...")
-        logger.info("Sending final warning message - 11:00-11:30 PM EST...")
+        print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
+        logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         last_warning_2_day = current_day
-        message = "⚠️ **FINAL HOUR WARNING!** ⚠️\n"
+        
+        # Get the daily art message from get_daily_art_message function
+        message = await get_daily_art_message()
+        
+        # Add final warning message
+        message += "\n\n⚠️ **FINAL HOUR WARNING!** ⚠️\n"
         message += "**You have approximately 1 hour before the daily reset!** ⏰💀\n\n"
         
         # Find users who need to submit
