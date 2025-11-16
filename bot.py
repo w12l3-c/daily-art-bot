@@ -10,6 +10,7 @@ import aiohttp
 import os
 import shutil
 import asyncio
+import subprocess
 from duel import register_duel_commands, set_tracked_users_reference, update_duel_progress, cleanup_expired_duels, get_duel_rankings, get_duel_data, load_duel_data
 from chain import register_chain_commands, set_tracked_users_reference as set_chain_tracked_users, process_chain_submission, get_chain_data, load_chain_data  
 
@@ -69,6 +70,7 @@ def reset_user_stats():
             'deceased': False,
             'deceased_days': 0,
             'missing_days': 0,
+            'consecutive_missed_days': 0,
             'revival': 0,
             'buffer': 0,
             'probation': False,
@@ -80,36 +82,43 @@ def reset_user_stats():
     logger.info(f"Reset stats for {len(tracked_users)} users for new season")
     print(f"✅ Reset stats for {len(tracked_users)} users for new season")
 
-async def get_daily_art_message():
-    """Generate the daily art message showing jail status"""
-    users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
-    users_sent = [u for u in tracked_users.values() if u['sent_image']]
-    
-    message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
-    message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
-    message += "\n**⛓️ Jailed:**\n"
-    message += "🧱"*20 + "\n"
+async def auto_commit_backup():
+    """Automatically commit and push backup.json to git"""
+    try:
+        # Add backup.json to git
+        result = subprocess.run(['git', 'add', 'backup.json'], 
+                              capture_output=True, text=True, cwd=os.getcwd())
+        if result.returncode != 0:
+            logger.warning(f"Git add failed: {result.stderr}")
+            return False
+        
+        # Create commit message with current day and datetime
+        commit_message = f"Auto-backup: Day {current_day} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S EST')}"
+        
+        # Commit the changes
+        result = subprocess.run(['git', 'commit', '-m', commit_message], 
+                              capture_output=True, text=True, cwd=os.getcwd())
+        if result.returncode != 0:
+            # If commit fails (e.g., no changes), log but don't treat as error
+            logger.info(f"Git commit: {result.stdout if result.stdout else result.stderr}")
+            return True  # No changes is not an error
+        
+        # Push to remote
+        result = subprocess.run(['git', 'push', 'origin'], 
+                              capture_output=True, text=True, cwd=os.getcwd())
+        if result.returncode != 0:
+            logger.error(f"Git push failed: {result.stderr}")
+            return False
+        
+        logger.info(f"✅ Successfully auto-committed and pushed backup for Day {current_day}")
+        print(f"✅ Git auto-backup completed for Day {current_day}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Git auto-backup failed: {e}")
+        return False
 
-    for user in users_not_sent:
-        if not user['deceased']:
-            message += f"|| {user['user_nickname']} 💨{user['missing_days']} || "
-        if user != users_not_sent[-1]:
-            message += r"\| "
 
-    message += "\n" + "🧱"*20 + "\n"
-    
-    message += "\n**🪦 Deceased:**\n"
-    message += "☁️"*20 + "\n"
-    
-    for user in users_not_sent:
-        if user['deceased']:
-            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']}) || "
-        if user != users_not_sent[-1]:
-            message += r"\| "
-    
-    message += "\n" + "☁️"*20
-    
-    return message
 
 def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     """Check if user has administrator permissions or mod role"""
@@ -325,6 +334,35 @@ async def on_message(message):
         if "#badge" in content_lower:
             if await handle_badge_upload(message):
                 return  # Badge handled, don't process as regular art
+        
+        # Auto-track users who have the "daily" Discord role (if not already tracked)
+        if message.author.id not in tracked_users:
+            # Check if user has the "daily" role
+            member = message.guild.get_member(message.author.id)
+            if member or any(role.name.lower() == "daily" for role in member.roles):
+                # Automatically add user to tracking if they have the "daily" role
+                user_nickname = member.nick if member and member.nick else message.author.name
+                
+                tracked_users[message.author.id] = {
+                    'username': message.author.name,
+                    'user_nickname': user_nickname,
+                    'sent_image': False,
+                    'parole_days': 0,
+                    'deceased': False,
+                    'deceased_days': 0,
+                    'missing_days': 0,
+                    'consecutive_missed_days': 0,
+                    'revival': 0,
+                    'buffer': 0,
+                    'probation': False,
+                    'ping': True,  # Enable pings by default for auto-tracked users
+                    'duels_won': 0,
+                    'duels_lost': 0
+                }
+                
+                print(f"🎯 Auto-tracked {message.author.name} due to 'daily' role")
+                logger.info(f"Auto-tracked {message.author.name} due to 'daily' role")
+                await message.channel.send(f"🎨 Welcome to daily art tracking, {message.author.display_name}! You've been automatically added due to your 'daily' role.")
         
         if message.author.id in tracked_users:
             user_data = tracked_users[message.author.id]
@@ -593,6 +631,7 @@ async def add_user(interaction: discord.Interaction, user: discord.User):
             'deceased': False,
             'deceased_days': 0,
             'missing_days': 0,
+            'consecutive_missed_days': 0,
             'revival': 0,
             'buffer': 0,
             'probation': False,
@@ -633,6 +672,7 @@ async def join_tracking(interaction: discord.Interaction):
             'deceased': False,
             'deceased_days': 0,
             'missing_days': 0,
+            'consecutive_missed_days': 0,
             'revival': 0,
             'buffer': 0,
             'probation': False,
@@ -695,7 +735,7 @@ async def list_attributes(interaction: discord.Interaction):
     else:
         attributes = [
             "username", "user_nickname", "sent_image", "parole_days", "deceased",
-            "deceased_days", "missing_days", "revival", "buffer", "probation", "ping",
+            "deceased_days", "missing_days", "consecutive_missed_days", "revival", "buffer", "probation", "ping",
             "duels_won", "duels_lost"
         ]
 
@@ -718,7 +758,8 @@ async def query_user(interaction: discord.Interaction, user: discord.User):
             f"⏳ Parole Days: {u['parole_days']}\n"
             f"💀 Deceased: {u['deceased']} ({u['deceased_days']} days)\n"
             f"🚫 Missing Days: {u['missing_days']}\n"
-            f"🚀 Revivals: {u['revival']}\n"
+            f"� Consecutive Missed: {u.get('consecutive_missed_days', 0)} days\n"
+            f"�🚀 Revivals: {u['revival']}\n"
             f"🔒 Probation: {u['probation']}\n"
             f"🔔 Ping Notifications: {u['ping']}\n"
             f"⚔️ Duels Won: {u.get('duels_won', 0)}\n"
@@ -1178,6 +1219,10 @@ async def send_daily_art_message():
             print(f"Day {current_day} has ended!")
             logger.info(f"Day {current_day} has ended!")
             current_day += 1
+            
+            # Auto-commit backup.json after day advancement
+            await auto_commit_backup()
+            
         else:
             print("No tracked users - pausing season progression")
             logger.info("No tracked users - season paused until users are added")
@@ -1276,27 +1321,59 @@ async def send_daily_art_message():
                 logger.error(f"Could not send new season message - announcement channel {announcement_channel} not found")
 
         for user in tracked_users.values():
+            # Initialize consecutive_missed_days if it doesn't exist (for existing users)
+            if 'consecutive_missed_days' not in user:
+                user['consecutive_missed_days'] = 0
+            
+            # Process daily submission status first
             if not user['sent_image']:
                 if not user['probation']:
-                    if not user['deceased']:
-                        user['deceased'] = True
-                    user['deceased_days'] += 1
+                    # Increment consecutive missed days
+                    user['consecutive_missed_days'] += 1
                     user['missing_days'] += 1
+                    
+                    # Buffer rules: Can only save from death if NOT consecutive days
+                    # If consecutive_missed_days >= 2, buffer cannot save them
+                    can_use_buffer = user['consecutive_missed_days'] == 1 and user['buffer'] > 0
+                    
+                    if can_use_buffer:
+                        # Consume buffer to save from missing day (only on first consecutive miss)
+                        user['buffer'] -= 1
+                        user['missing_days'] -= 1
+                        logger.info(f"Buffer saved {user['user_nickname']} from missing day (non-consecutive)")
+                        
+                        # Buffer saved them - revive if needed
+                        if user['deceased']:
+                            user['revival'] += 1
+                            user['deceased'] = False
+                    else:
+                        # No buffer can save them OR consecutive miss
+                        if user['consecutive_missed_days'] >= 2:
+                            logger.info(f"{user['user_nickname']} missed {user['consecutive_missed_days']} consecutive days - buffer disabled")
+                        
+                        # Mark as deceased
+                        if not user['deceased']:
+                            user['deceased'] = True
+                        user['deceased_days'] += 1
             else:
+                # User submitted art - reset consecutive counter and restore buffer functionality
+                user['consecutive_missed_days'] = 0
                 user['parole_days'] += 1
                 if user['deceased']:
                     user['revival'] += 1
                     user['deceased'] = False
+                
+                # Reduce missing days when they submit
                 if user['missing_days'] > 0:
                     user['missing_days'] -= 1
-                    
-            # Auto-consume buffer for everyone with missing days (restored automatic behavior)
-            if user['missing_days'] > 0 and user['buffer'] > 0:
-                reduction = min(user['missing_days'], user['buffer'])
-                user['missing_days'] -= reduction
-                user['buffer'] -= reduction
-                logger.info(f"Auto-consumed {reduction} buffer for {user['user_nickname']} to reduce missing days")
                 
+                # Also consume buffer if they have any remaining missing days
+                if user['missing_days'] > 0 and user['buffer'] > 0:
+                    reduction = min(user['missing_days'], user['buffer'])
+                    user['missing_days'] -= reduction
+                    user['buffer'] -= reduction
+                    logger.info(f"Auto-consumed {reduction} buffer for {user['user_nickname']} to reduce remaining missing days")
+                    
             # Reset daily submission flag for next day
             user['sent_image'] = False
         
@@ -1341,8 +1418,40 @@ async def ping_jailed_users():
         logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         last_warning_1_day = current_day
         
-        # Get the daily art message from get_daily_art_message function  
-        message = await get_daily_art_message()
+        # Build the daily art message inline
+        users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
+        users_sent = [u for u in tracked_users.values() if u['sent_image']]
+        
+        message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
+        message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
+        message += "\n**⛓️ Jailed:**\n"
+        message += "🧱"*20 + "\n"
+        
+        # Filter jailed and deceased users
+        jailed_users = [user for user in users_not_sent if not user['deceased']]
+        deceased_users = [user for user in users_not_sent if user['deceased']]
+        
+        for i, user in enumerate(jailed_users):
+            message += f"|| {user['user_nickname']} 💨{user['missing_days']}"
+            if user['buffer'] > 0:
+                message += f" (🛑{user['buffer']})"
+            message += " || "
+            if i < len(jailed_users) - 1:
+                message += r"\| "
+        
+        message += "\n" + "🧱"*20 + "\n"
+        message += "\n**🪦 Deceased:**\n"
+        message += "☁️"*20 + "\n"
+        
+        for i, user in enumerate(deceased_users):
+            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']})"
+            if user['buffer'] > 0:
+                message += f" 🛑{user['buffer']}"
+            message += " || "
+            if i < len(deceased_users) - 1:
+                message += r"\| "
+        
+        message += "\n" + "☁️"*20
         
         # Add warning message
         message += "\n\n🚨 **Daily Art Reminder!** 🚨\n"
@@ -1367,8 +1476,40 @@ async def ping_jailed_users():
         logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         last_warning_2_day = current_day
         
-        # Get the daily art message from get_daily_art_message function
-        message = await get_daily_art_message()
+        # Build the daily art message inline
+        users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
+        users_sent = [u for u in tracked_users.values() if u['sent_image']]
+        
+        message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
+        message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
+        message += "\n**⛓️ Jailed:**\n"
+        message += "🧱"*20 + "\n"
+        
+        # Filter jailed and deceased users
+        jailed_users = [user for user in users_not_sent if not user['deceased']]
+        deceased_users = [user for user in users_not_sent if user['deceased']]
+        
+        for i, user in enumerate(jailed_users):
+            message += f"|| {user['user_nickname']} 💨{user['missing_days']}"
+            if user['buffer'] > 0:
+                message += f" (🛑{user['buffer']})"
+            message += " || "
+            if i < len(jailed_users) - 1:
+                message += r"\| "
+        
+        message += "\n" + "🧱"*20 + "\n"
+        message += "\n**🪦 Deceased:**\n"
+        message += "☁️"*20 + "\n"
+        
+        for i, user in enumerate(deceased_users):
+            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']})"
+            if user['buffer'] > 0:
+                message += f" 🛑{user['buffer']}"
+            message += " || "
+            if i < len(deceased_users) - 1:
+                message += r"\| "
+        
+        message += "\n" + "☁️"*20
         
         # Add final warning message
         message += "\n\n⚠️ **FINAL HOUR WARNING!** ⚠️\n"
