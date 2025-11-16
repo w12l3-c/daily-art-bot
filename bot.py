@@ -1175,22 +1175,22 @@ async def send_daily_art_message():
     message += "\n**⛓️ Jailed:**\n"
     message += "🧱"*20 + "\n"
 
-    for user in users_not_sent:
-        if not user['deceased']:
-            message += f"|| {user['user_nickname']} 💨{user['missing_days']} || "
-        if user != users_not_sent[-1]:
-            message += r"\| "
+    # Filter users by category first
+    jailed_users = [user for user in users_not_sent if not user['deceased']]
+    deceased_users = [user for user in users_not_sent if user['deceased']]
+    
+    # Process jailed users
+    for i, user in enumerate(jailed_users):
+        message += f"|| {user['user_nickname']} 💨{user['missing_days']} || "
 
     message += "\n" + "🧱"*20 + "\n"
     
     message += "\n**🪦 Deceased:**\n"
     message += "☁️"*20 + "\n"
     
-    for user in users_not_sent:
-        if user['deceased']:
-            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']}) || "
-        if user != users_not_sent[-1]:
-            message += r"\| "
+    # Process deceased users  
+    for i, user in enumerate(deceased_users):
+        message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']}) || "
     
     message += "\n" + "☁️"*20
 
@@ -1263,12 +1263,25 @@ async def send_daily_art_message():
                 results_message += f"**{rank}.** {', '.join(grouped_users)} | 🏆 Parole: {prev_user['parole_days']} | ⏳ Missing: {prev_user['missing_days']} | 😇 Revival: {prev_user['revival']}\n"
 
             results_message += f"\n## **Funny Achievements:**\n"
-            max_revival = max(user['revival'] for user in tracked_users.values())
-            highest_revival_users = [user['user_nickname'] for user in tracked_users.values() if user['revival'] == max_revival]
-            max_buffer = max(user['buffer'] for user in tracked_users.values())
-            highest_buffer_users = [user['user_nickname'] for user in tracked_users.values() if user['buffer'] == max_buffer]
-            results_message += f"**💾 Most Buffer Art:** {', '.join(highest_buffer_users)} - {max_buffer}\n"
-            results_message += f"**😇 Most Revived:** {', '.join(highest_revival_users)} - {max_revival}\n"
+            
+            # Check if we have any users to avoid crashes
+            if not tracked_users:
+                results_message += "No tracked users for achievements.\n"
+            else:
+                max_revival = max(user['revival'] for user in tracked_users.values())
+                highest_revival_users = [user['user_nickname'] for user in tracked_users.values() if user['revival'] == max_revival]
+                max_buffer = max(user['buffer'] for user in tracked_users.values())
+                highest_buffer_users = [user['user_nickname'] for user in tracked_users.values() if user['buffer'] == max_buffer]
+                
+                # Only show achievements if someone actually has meaningful stats
+                if max_buffer > 0:
+                    results_message += f"**💾 Most Remaining Buffer Art:** {', '.join(highest_buffer_users)} - {max_buffer}\n"
+                
+                if max_revival > 0:
+                    results_message += f"**😇 Most Revived:** {', '.join(highest_revival_users)} - {max_revival}\n"
+                
+                if max_buffer == 0 and max_revival == 0:
+                    results_message += "🏆 **Perfect Season!** No one died or needed buffer art! 🎉\n"
             
             # Add duel rankings
             duel_rankings = get_duel_rankings()
@@ -1436,8 +1449,6 @@ async def ping_jailed_users():
             if user['buffer'] > 0:
                 message += f" (🛑{user['buffer']})"
             message += " || "
-            if i < len(jailed_users) - 1:
-                message += r"\| "
         
         message += "\n" + "🧱"*20 + "\n"
         message += "\n**🪦 Deceased:**\n"
@@ -1448,8 +1459,6 @@ async def ping_jailed_users():
             if user['buffer'] > 0:
                 message += f" 🛑{user['buffer']}"
             message += " || "
-            if i < len(deceased_users) - 1:
-                message += r"\| "
         
         message += "\n" + "☁️"*20
         
@@ -1494,8 +1503,6 @@ async def ping_jailed_users():
             if user['buffer'] > 0:
                 message += f" (🛑{user['buffer']})"
             message += " || "
-            if i < len(jailed_users) - 1:
-                message += r"\| "
         
         message += "\n" + "🧱"*20 + "\n"
         message += "\n**🪦 Deceased:**\n"
@@ -1506,8 +1513,6 @@ async def ping_jailed_users():
             if user['buffer'] > 0:
                 message += f" 🛑{user['buffer']}"
             message += " || "
-            if i < len(deceased_users) - 1:
-                message += r"\| "
         
         message += "\n" + "☁️"*20
         
