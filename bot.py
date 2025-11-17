@@ -339,7 +339,7 @@ async def on_message(message):
         if message.author.id not in tracked_users:
             # Check if user has the "Dailies Challenger" role
             member = message.guild.get_member(message.author.id)
-            if member or any(role.name.lower() == "dailies challenger" for role in member.roles):
+            if any(role.name.lower() == "dailies challenger" for role in member.roles):
                 # Automatically add user to tracking if they have the "Dailies Challenger" role
                 user_nickname = member.nick if member and member.nick else message.author.name
                 
