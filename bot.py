@@ -337,10 +337,10 @@ async def on_message(message):
         
         # Auto-track users who have the "daily" Discord role (if not already tracked)
         if message.author.id not in tracked_users:
-            # Check if user has the "daily" role
+            # Check if user has the "Dailies Challenger" role
             member = message.guild.get_member(message.author.id)
-            if member or any(role.name.lower() == "daily" for role in member.roles):
-                # Automatically add user to tracking if they have the "daily" role
+            if member or any(role.name.lower() == "dailies challenger" for role in member.roles):
+                # Automatically add user to tracking if they have the "Dailies Challenger" role
                 user_nickname = member.nick if member and member.nick else message.author.name
                 
                 tracked_users[message.author.id] = {
@@ -355,15 +355,15 @@ async def on_message(message):
                     'revival': 0,
                     'buffer': 0,
                     'probation': False,
-                    'ping': True,  # Enable pings by default for auto-tracked users
+                    'ping': False,  # Enable pings by default for auto-tracked users
                     'duels_won': 0,
                     'duels_lost': 0
                 }
-                
-                print(f"🎯 Auto-tracked {message.author.name} due to 'daily' role")
-                logger.info(f"Auto-tracked {message.author.name} due to 'daily' role")
-                await message.channel.send(f"🎨 Welcome to daily art tracking, {message.author.display_name}! You've been automatically added due to your 'daily' role.")
-        
+
+                print(f"🎯 Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
+                logger.info(f"Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
+                await message.channel.send(f"🎨 Welcome to daily art tracking, {message.author.display_name}! You've been automatically added due to your 'Dailies Challenger' role.")
+
         if message.author.id in tracked_users:
             user_data = tracked_users[message.author.id]
 
