@@ -68,7 +68,6 @@ async def list_channels(interaction: discord.Interaction):
 @bot.tree.command(name="set_announcement_channel", description="Set the channel for daily announcements and results.")
 @app_commands.describe(channel="Select or mention the announcement channel or thread")
 async def set_announcement_channel(interaction: discord.Interaction, channel: discord.abc.GuildChannel):
-    global announcement_channel
     # Check if user has admin permissions or mod role
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
@@ -88,7 +87,6 @@ async def set_announcement_channel(interaction: discord.Interaction, channel: di
 @bot.tree.command(name="set_announcement_channel_by_id", description="Set announcement channel by ID (supports threads).")
 @app_commands.describe(channel_id="Enter the channel or thread ID as text")
 async def set_announcement_channel_by_id(interaction: discord.Interaction, channel_id: str):
-    global announcement_channel
     # Check if user has admin permissions or mod role
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
@@ -124,12 +122,12 @@ async def set_announcement_channel_by_id(interaction: discord.Interaction, chann
 
 @bot.tree.command(name="get_announcement_channel", description="Show the current announcement channel.")
 async def get_announcement_channel(interaction: discord.Interaction):
-    if announcement_channel:
-        channel = bot.get_channel(announcement_channel)
+    if shared.announcement_channel:
+        channel = bot.get_channel(shared.announcement_channel)
         if channel:
             await interaction.response.send_message(f"📢 **Current announcement channel:** {channel.mention} ({channel.name})")
         else:
-            await interaction.response.send_message(f"⚠️ **Current announcement channel ID:** {announcement_channel} (channel not accessible)")
+            await interaction.response.send_message(f"⚠️ **Current announcement channel ID:** {shared.announcement_channel} (channel not accessible)")
     else:
         await interaction.response.send_message("❌ No announcement channel set. Use `/set_announcement_channel` to set one.")
 
@@ -178,10 +176,10 @@ async def channel_info(interaction: discord.Interaction):
     
     # Announcement channel
     info_message += "\n**📢 Announcement Channel:**\n"
-    if announcement_channel:
-        channel = bot.get_channel(announcement_channel)
+    if shared.announcement_channel:
+        channel = bot.get_channel(shared.announcement_channel)
         channel_name = f" ({channel.name})" if channel else " (not accessible)"
-        info_message += f"• <#{announcement_channel}>{channel_name}\n"
+        info_message += f"• <#{shared.announcement_channel}>{channel_name}\n"
     else:
         info_message += "• None set\n"
     
@@ -591,8 +589,8 @@ async def clear_duels_and_chains(interaction: discord.Interaction):
         await interaction.followup.send(success_message, ephemeral=True)
         
         # Also announce in the announcement channel if configured
-        if announcement_channel:
-            channel = bot.get_channel(announcement_channel)
+        if shared.announcement_channel:
+            channel = bot.get_channel(shared.announcement_channel)
             if channel:
                 announce_message = f"🧹 **Duels & Chains Cleared** 🧹\n"
                 announce_message += f"All active duels and art chains have been cleared by {interaction.user.display_name}.\n"
@@ -639,8 +637,8 @@ async def reset_season_stats(interaction: discord.Interaction):
         await interaction.followup.send(success_message, ephemeral=True)
         
         # Also announce in the announcement channel if configured
-        if announcement_channel:
-            channel = bot.get_channel(announcement_channel)
+        if shared.announcement_channel:
+            channel = bot.get_channel(shared.announcement_channel)
             if channel:
                 announce_message = f"🔄 **Season Stats Reset** 🔄\n"
                 announce_message += f"All user stats have been manually reset by {interaction.user.display_name}!\n"
@@ -655,20 +653,19 @@ async def reset_season_stats(interaction: discord.Interaction):
 async def season_info(interaction: discord.Interaction):
     info_message = (
         f"## 📅 **Current Season Information** 📅\n\n"
-        f"**🎭 Season**: {season}\n"
-        f"**🎨 Theme**: {season_theme}\n"
-        f"**📆 Current Day**: {current_day}\n"
-        f"**📊 Total Days**: {season_days}\n"
-        f"**⏳ Days Remaining**: {season_days - current_day + 1}\n"
+        f"**🎭 Season**: {shared.season}\n"
+        f"**🎨 Theme**: {shared.season_theme}\n"
+        f"**📆 Current Day**: {shared.current_day}\n"
+        f"**📊 Total Days**: {shared.season_days}\n"
+        f"**⏳ Days Remaining**: {shared.season_days - shared.current_day + 1}\n"
         f"**👥 Active Users**: {len(shared.tracked_users)}\n\n"
-        f"**Progress**: {current_day}/{season_days} days ({(current_day/season_days)*100:.1f}%)"
+        f"**Progress**: {shared.current_day}/{shared.season_days} days ({(shared.current_day/shared.season_days)*100:.1f}%)"
     )
     await interaction.response.send_message(info_message)
 
 @bot.tree.command(name="set_season_theme", description="Set the current season theme (Admin only).")
 @app_commands.describe(theme="Enter the new season theme")
 async def set_season_theme(interaction: discord.Interaction, theme: str):
-    global season_theme
     # Check if user has admin permissions or mod role
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
@@ -682,7 +679,6 @@ async def set_season_theme(interaction: discord.Interaction, theme: str):
 @bot.tree.command(name="set_season_days", description="Set the total days for current season (Admin only).")
 @app_commands.describe(days="Enter the total number of days for the season")
 async def set_season_days(interaction: discord.Interaction, days: int):
-    global season_days
     # Check if user has admin permissions or mod role
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
@@ -692,18 +688,17 @@ async def set_season_days(interaction: discord.Interaction, days: int):
         await interaction.response.send_message("❌ Season days must be at least 1.", ephemeral=True)
         return
     
-    if days < current_day:
-        await interaction.response.send_message(f"⚠️ Warning: Setting season days ({days}) less than current day ({current_day}). Season will end immediately!", ephemeral=True)
+    if days < shared.current_day:
+        await interaction.response.send_message(f"⚠️ Warning: Setting season days ({days}) less than current day ({shared.current_day}). Season will end immediately!", ephemeral=True)
     
-    old_days = season_days
-    season_days = days
-    await interaction.response.send_message(f"✅ Season days changed from **{old_days}** to **{season_days}** days", ephemeral=True)
-    logger.info(f"Season days changed from {old_days} to {season_days} by {interaction.user.name}")
+    old_days = shared.season_days
+    shared.season_days = days
+    await interaction.response.send_message(f"✅ Season days changed from **{old_days}** to **{shared.season_days}** days", ephemeral=True)
+    logger.info(f"Season days changed from {old_days} to {shared.season_days} by {interaction.user.name}")
 
 @bot.tree.command(name="set_current_day", description="Set the current day number (Admin only).")
 @app_commands.describe(day="Enter the current day number")
 async def set_current_day(interaction: discord.Interaction, day: int):
-    global current_day
     # Check if user has admin permissions or mod role
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
@@ -713,18 +708,17 @@ async def set_current_day(interaction: discord.Interaction, day: int):
         await interaction.response.send_message("❌ Current day must be at least 1.", ephemeral=True)
         return
     
-    if day > season_days:
-        await interaction.response.send_message(f"⚠️ Warning: Setting current day ({day}) greater than season days ({season_days}). Season will end immediately!", ephemeral=True)
+    if day > shared.season_days:
+        await interaction.response.send_message(f"⚠️ Warning: Setting current day ({day}) greater than season days ({shared.season_days}). Season will end immediately!", ephemeral=True)
     
-    old_day = current_day
-    current_day = day
-    await interaction.response.send_message(f"✅ Current day changed from **{old_day}** to **{current_day}**", ephemeral=True)
-    logger.info(f"Current day changed from {old_day} to {current_day} by {interaction.user.name}")
+    old_day = shared.current_day
+    shared.current_day = day
+    await interaction.response.send_message(f"✅ Current day changed from **{old_day}** to **{shared.current_day}**", ephemeral=True)
+    logger.info(f"Current day changed from {old_day} to {shared.current_day} by {interaction.user.name}")
 
 @bot.tree.command(name="set_season_number", description="Set the season number (Admin only).")
 @app_commands.describe(season_num="Enter the season number")
 async def set_season_number(interaction: discord.Interaction, season_num: int):
-    global season
     # Check if user has admin permissions or mod role
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
