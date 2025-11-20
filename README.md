@@ -1,6 +1,6 @@
 # Daily Art Jail - UWVAC
 Discord Bot for tracking dailies 
-Solo project by w12l3-c, badges created by codinghustlemoon
+Project by w12l3-c and w1dering, badges created by codinghustlemoon
 
 ### Dev
 Python Version > 3.9 

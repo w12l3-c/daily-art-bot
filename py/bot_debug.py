@@ -9,8 +9,6 @@ from dotenv import load_dotenv
 import aiohttp
 import os
 import shutil
-import asyncio
-import subprocess
 from duel import register_duel_commands, set_tracked_users_reference, update_duel_progress, cleanup_expired_duels, get_duel_rankings, get_duel_data, load_duel_data
 from chain import register_chain_commands, set_tracked_users_reference as set_chain_tracked_users, process_chain_submission, get_chain_data, load_chain_data  
 
@@ -28,10 +26,10 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 time_debug = 30  # seconds
-time_deploy = 1 # hours
+time_deploy = 8 # hours
 
 # Configurable mod role name (case-insensitive)
-MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, comparison is case-insensitive
+MOD_ROLE_NAME = "wally"
 
 intents = discord.Intents.default()
 intents.members = True
@@ -42,83 +40,11 @@ allowed_channels = [1281049819342831636]
 announcement_channel = 1281049819342831636  # Default announcement channel
 
 tracked_users = {}
-current_day = 45
-season = 1
+current_day = 1
+season = 3
 season_theme = "Testing"
-season_days = 50
-saved_data = "backup.json"
-
-# Track when messages were last sent to prevent duplicates
-last_daily_message_day = -1
-last_warning_1_day = -1
-last_warning_2_day = -1
-
-def reset_user_stats():
-    """Reset all user stats for a new season while preserving core identity info"""
-    for user in tracked_users.values():
-        # Keep these fields (user identity and preferences)
-        username = user['username']
-        user_nickname = user['user_nickname'] 
-        ping = user['ping']
-        
-        # Reset all stats to starting values
-        user.update({
-            'username': username,
-            'user_nickname': user_nickname,
-            'sent_image': False,
-            'parole_days': 0,
-            'deceased': False,
-            'deceased_days': 0,
-            'missing_days': 0,
-            'consecutive_missed_days': 0,
-            'revival': 0,
-            'buffer': 0,
-            'probation': False,
-            'ping': ping,
-            'duels_won': 0,
-            'duels_lost': 0
-        })
-    
-    logger.info(f"Reset stats for {len(tracked_users)} users for new season")
-    print(f"✅ Reset stats for {len(tracked_users)} users for new season")
-
-async def auto_commit_backup():
-    """Automatically commit and push backup.json to git"""
-    try:
-        # Add backup.json to git
-        result = subprocess.run(['git', 'add', 'backup.json'], 
-                              capture_output=True, text=True, cwd=os.getcwd())
-        if result.returncode != 0:
-            logger.warning(f"Git add failed: {result.stderr}")
-            return False
-        
-        # Create commit message with current day and datetime
-        commit_message = f"Auto-backup: Day {current_day} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S EST')}"
-        
-        # Commit the changes
-        result = subprocess.run(['git', 'commit', '-m', commit_message], 
-                              capture_output=True, text=True, cwd=os.getcwd())
-        if result.returncode != 0:
-            # If commit fails (e.g., no changes), log but don't treat as error
-            logger.info(f"Git commit: {result.stdout if result.stdout else result.stderr}")
-            return True  # No changes is not an error
-        
-        # Push to remote
-        result = subprocess.run(['git', 'push', 'origin'], 
-                              capture_output=True, text=True, cwd=os.getcwd())
-        if result.returncode != 0:
-            logger.error(f"Git push failed: {result.stderr}")
-            return False
-        
-        logger.info(f"✅ Successfully auto-committed and pushed backup for Day {current_day}")
-        print(f"✅ Git auto-backup completed for Day {current_day}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Git auto-backup failed: {e}")
-        return False
-
-
+season_days = 10
+SAVED_DATA_PATH = "backup.json"
 
 def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     """Check if user has administrator permissions or mod role"""
@@ -128,9 +54,8 @@ def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
     
     # Check for mod role (case-insensitive)
     if hasattr(interaction.user, 'roles'):
-        mod_roles_lower = [role.lower() for role in MOD_ROLE_NAME]
         for role in interaction.user.roles:
-            if role.name.lower() in mod_roles_lower:
+            if role.name.lower() == MOD_ROLE_NAME.lower():
                 return True
     
     return False
@@ -143,9 +68,8 @@ def has_badge_permissions(member) -> bool:
     
     # Check for mod role (case-insensitive)
     if hasattr(member, 'roles'):
-        mod_roles_lower = [role.lower() for role in MOD_ROLE_NAME]
         for role in member.roles:
-            if role.name.lower() in mod_roles_lower:
+            if role.name.lower() == MOD_ROLE_NAME.lower():
                 return True
     
     return False
@@ -155,13 +79,13 @@ async def handle_badge_upload(message):
     # Check if user has permissions
     member = message.author
     if not has_badge_permissions(member):
-        await message.channel.send(f"❌ {member.display_name}, you need administrator permissions or mod role to upload badges.")
+        await message.channel.send(f"❌ {member.name}, you need administrator permissions or mod role to upload badges.")
         return True  # Return True to indicate message was handled
     
     # Check if attachment is PNG
     attachment = message.attachments[0]
     if not attachment.filename.lower().endswith('.png'):
-        await message.channel.send(f"❌ {member.display_name}, badges must be PNG files.")
+        await message.channel.send(f"❌ {member.name}, badges must be PNG files.")
         return True
     
     try:
@@ -186,32 +110,27 @@ async def handle_badge_upload(message):
                     with open(badge_path, 'wb') as f:
                         f.write(await resp.read())
                     
-                    await message.channel.send(f"🏆 {member.display_name}, badge '{attachment.filename}' has been uploaded successfully!")
+                    await message.channel.send(f"🏆 {member.name}, badge '{attachment.filename}' has been uploaded successfully!")
                     logger.info(f"Badge uploaded: {attachment.filename} by {member.name}")
                     return True
                 else:
-                    await message.channel.send(f"❌ {member.display_name}, failed to download the badge image.")
+                    await message.channel.send(f"❌ {member.name}, failed to download the badge image.")
                     return True
     
     except Exception as e:
         logger.error(f"Error uploading badge: {e}")
-        await message.channel.send(f"❌ {member.display_name}, there was an error uploading the badge.")
+        await message.channel.send(f"❌ {member.name}, there was an error uploading the badge.")
         return True
 
 def load_data():
-    global current_day, season, tracked_users, announcement_channel, allowed_channels
+    global current_day, season, tracked_users, announcement_channel
     try:
-        with open(saved_data, "r") as f:
+        with open(SAVED_DATA_PATH, "r") as f:
             data = json.load(f)
-            current_day = data.get("current_day", current_day)
-            season = data.get("season", season)
+            current_day = data.get("current_day", 1)
+            season = data.get("season", 1)
             loaded_users = data.get("tracked_users", {})
             announcement_channel = data.get("announcement_channel", allowed_channels[0] if allowed_channels else None)
-            
-            # Load allowed_channels if it exists, otherwise keep the current one
-            loaded_allowed_channels = data.get("allowed_channels", allowed_channels)
-            if loaded_allowed_channels:
-                allowed_channels = loaded_allowed_channels
             
             # Convert string keys back to integers (JSON stores dict keys as strings)
             tracked_users = {}
@@ -234,7 +153,6 @@ def load_data():
             logger.info(f"Data loaded successfully! (Day {current_day}, Season {season})")
             logger.info(f"Loaded {len(tracked_users)} users with IDs: {list(tracked_users.keys())}")
             logger.info(f"Announcement channel set to: {announcement_channel}")
-            logger.info(f"Allowed channels: {allowed_channels}")
     except (FileNotFoundError, json.JSONDecodeError):
         print("⚠️ No save file found. Starting fresh.")
         logger.warning("No save file found. Starting fresh.")
@@ -253,40 +171,19 @@ async def on_ready():
         load_data()
         
         # Initialize duel system with tracked users reference
-        try:
-            set_tracked_users_reference(tracked_users)
-            await register_duel_commands(bot)
-            print("✅ Duel commands registered successfully")
-            logger.info("Duel commands registered successfully")
-        except Exception as e:
-            print(f"❌ Failed to register duel commands: {e}")
-            logger.error(f"Failed to register duel commands: {e}")
+        set_tracked_users_reference(tracked_users)
+        await register_duel_commands(bot)
         
         # Initialize chain system with tracked users reference
-        try:
-            set_chain_tracked_users(tracked_users)
-            await register_chain_commands(bot)
-            print("✅ Chain commands registered successfully")
-            logger.info("Chain commands registered successfully")
-        except Exception as e:
-            print(f"❌ Failed to register chain commands: {e}")
-            logger.error(f"Failed to register chain commands: {e}")
+        set_chain_tracked_users(tracked_users)
+        await register_chain_commands(bot)
         
-        # Small delay to ensure commands are properly registered before syncing
-        await asyncio.sleep(1)
-        
-        # Sync ALL commands (including duel and chain) AFTER registering them
-        try:
-            synced = await bot.tree.sync()  # Sync slash commands
-            print(f"Synced {len(synced)} commands.")
-            logger.info(f"Synced {len(synced)} commands.")
-        except Exception as e:
-            print(f"Error syncing commands: {e}")
-            logger.error(f"Error syncing commands: {e}")
-            
+        synced = await bot.tree.sync()  # Sync slash commands
+        print(f"Synced {len(synced)} commands.")
+        logger.info(f"Synced {len(synced)} commands.")
     except Exception as e:
-        print(f"Error in on_ready: {e}")
-        logger.error(f"Error in on_ready: {e}")
+        print(f"Error syncing commands: {e}")
+        logger.error(f"Error syncing commands: {e}")
 
     send_daily_art_message.start()
     save_data_task.start()
@@ -307,27 +204,8 @@ async def on_message(message):
         nickname = member.nick if member and member.nick else member.name
         await message.channel.send(f"Hi! {nickname} <3")
 
-    # Check if the message has an image/video attachment or is a forwarded message with media
-    has_media = False
-    if message.attachments:
-        # Check for images and mp4 videos
-        has_media = any(
-            attachment.content_type.startswith("image/") or 
-            attachment.content_type.startswith("video/mp4") or
-            attachment.filename.lower().endswith(('.mp4', '.mov'))
-            for attachment in message.attachments
-        )
-    
-    # Also check if it's a forwarded message with embeds that might contain media
-    if not has_media and message.embeds:
-        has_media = any(
-            embed.type in ['image', 'video'] or 
-            (embed.image and embed.image.url) or 
-            (embed.video and embed.video.url)
-            for embed in message.embeds
-        )
-    
-    if has_media:
+    # Check if the message has an image and if the user is being tracked
+    if message.attachments and any(attachment.content_type.startswith("image/") for attachment in message.attachments):
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
         
         # Handle badge uploads (specific role required)
@@ -335,54 +213,16 @@ async def on_message(message):
             if await handle_badge_upload(message):
                 return  # Badge handled, don't process as regular art
         
-        # Auto-track users who have the "daily" Discord role (if not already tracked)
-        if message.author.id not in tracked_users:
-            # Check if user has the "Dailies Challenger" role
-            member = message.guild.get_member(message.author.id)
-            print(member.roles)
-            if any(role.name.lower() == "dailies challenger" for role in member.roles):
-                # Automatically add user to tracking if they have the "Dailies Challenger" role
-                user_nickname = member.nick if member and member.nick else message.author.name
-                
-                tracked_users[message.author.id] = {
-                    'username': message.author.name,
-                    'user_nickname': user_nickname,
-                    'sent_image': False,
-                    'parole_days': 0,
-                    'deceased': False,
-                    'deceased_days': 0,
-                    'missing_days': 0,
-                    'consecutive_missed_days': 0,
-                    'revival': 0,
-                    'buffer': 0,
-                    'probation': False,
-                    'ping': False,  
-                    'duels_won': 0,
-                    'duels_lost': 0
-                }
-
-                print(f"🎯 Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
-                logger.info(f"Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
-                await message.channel.send(f"🎨 Welcome to daily art tracking, {message.author.display_name}! You've been automatically added due to your 'Dailies Challenger' role.")
-
         if message.author.id in tracked_users:
             user_data = tracked_users[message.author.id]
 
             if "#daily" in content_lower:
-                if user_data['sent_image']:
-                    # User already submitted daily art, count this as buffer
-                    user_data['buffer'] = user_data.get('buffer', 0) + 1
-                    print(f"🛑 {message.author.name} submitted additional #daily art as buffer.")
-                    logger.info(f"{message.author.name} submitted additional #daily art as buffer.")
-                    await message.channel.send(f"📌 {message.author.display_name}, you've already submitted today's art! This has been recorded as buffer art.")
-                else:
-                    # First daily submission
-                    user_data['sent_image'] = True  # Mark as official art submission
-                    print(f"✅ {message.author.name} submitted official art.")
-                    logger.info(f"{message.author.name} submitted official art.")
-                    await message.channel.send(f"🎨 {message.author.display_name}, your art has been recorded for today!")
+                user_data['sent_image'] = True  # Mark as official art submission
+                print(f"✅ {message.author.name} submitted official art.")
+                logger.info(f"{message.author.name} submitted official art.")
+                await message.channel.send(f"🎨 {message.author.name}, your art has been recorded for today!")
                 
-                # Update duel progress for this user (regardless of buffer or daily)
+                # Update duel progress for this user
                 updated_duels = update_duel_progress(message.author.id, datetime.now())
                 if updated_duels:
                     logger.info(f"Updated {len(updated_duels)} duels for {message.author.name}")
@@ -391,42 +231,21 @@ async def on_message(message):
                 user_data['buffer'] = user_data.get('buffer', 0) + 1  # Increase buffer count
                 print(f"🛑 {message.author.name} submitted buffer art.")
                 logger.info(f"{message.author.name} submitted buffer art.")
-                await message.channel.send(f"📌 {message.author.display_name}, your buffer art has been recorded! This will not count for today's submission.")
+                await message.channel.send(f"📌 {message.author.name}, your buffer art has been recorded! This will not count for today's submission.")
 
             elif "#chain" in content_lower:
-                # Handle chain submission - pass the first attachment if available, or None for forwarded messages
-                first_attachment = message.attachments[0] if message.attachments else None
-                chain_processed = await process_chain_submission(message.author.id, message, first_attachment)
-                
-                # Also count chain submissions towards daily/buffer art
-                if chain_processed:
-                    if user_data['sent_image']:
-                        # User already submitted daily art, count chain as buffer
-                        user_data['buffer'] = user_data.get('buffer', 0) + 1
-                        print(f"🔗 {message.author.name} submitted chain art as buffer (already has daily submission).")
-                        logger.info(f"{message.author.name} submitted chain art as buffer.")
-                        await message.channel.send(f"🔗 {message.author.display_name}, your chain submission has been recorded! This also counts as buffer art since you've already submitted today.")
-                    else:
-                        # First submission of the day, count as daily art
-                        user_data['sent_image'] = True
-                        print(f"🔗 {message.author.name} submitted chain art as daily submission.")
-                        logger.info(f"{message.author.name} submitted chain art as daily submission.")
-                        await message.channel.send(f"🔗 {message.author.display_name}, your chain submission has been recorded! This also counts as today's daily art.")
-                    
-                    # Update duel progress for chain submissions too
-                    updated_duels = update_duel_progress(message.author.id, datetime.now())
-                    if updated_duels:
-                        logger.info(f"Updated {len(updated_duels)} duels for {message.author.name} (chain submission)")
-                else:
+                # Handle chain submission
+                chain_processed = await process_chain_submission(message.author.id, message, message.attachments[0])
+                if not chain_processed:
                     # If chain processing failed and user didn't tag it as anything else, show the regular untagged message
                     if user_data['ping']:
-                        await message.channel.send(f"⚠️ {message.author.display_name}, please tag your submission with `#daily` if it's an official art entry.")
+                        await message.channel.send(f"⚠️ {message.author.name}, please tag your submission with `#daily` if it's an official art entry.")
 
             else:
                 print(f"📸 {message.author.name} uploaded an image but didn't tag it as art.")
                 logger.info(f"{message.author.name} uploaded an image but didn't tag it as art.")
                 if user_data['ping']:
-                    await message.channel.send(f"⚠️ {message.author.display_name}, please tag your submission with `#daily` if it's an official art entry.")
+                    await message.channel.send(f"⚠️ {message.author.name}, please tag your submission with `#daily` if it's an official art entry.")
 
     # Process other commands
     await bot.process_commands(message)
@@ -543,17 +362,6 @@ async def set_announcement_channel_by_id(interaction: discord.Interaction, chann
         announcement_channel = channel_id_int
         logger.warning(f"Announcement channel set to unknown ID {channel_id_int} by {interaction.user.name}")
 
-@bot.tree.command(name="get_announcement_channel", description="Show the current announcement channel.")
-async def get_announcement_channel(interaction: discord.Interaction):
-    if announcement_channel:
-        channel = bot.get_channel(announcement_channel)
-        if channel:
-            await interaction.response.send_message(f"📢 **Current announcement channel:** {channel.mention} ({channel.name})")
-        else:
-            await interaction.response.send_message(f"⚠️ **Current announcement channel ID:** {announcement_channel} (channel not accessible)")
-    else:
-        await interaction.response.send_message("❌ No announcement channel set. Use `/set_announcement_channel` to set one.")
-
 @bot.tree.command(name="add_channel_by_id", description="Add a channel by ID (fallback method).")
 @app_commands.describe(channel_id="Enter the channel ID as text")
 async def add_channel_by_id(interaction: discord.Interaction, channel_id: str):
@@ -582,6 +390,17 @@ async def add_channel_by_id(interaction: discord.Interaction, channel_id: str):
         await interaction.response.send_message(f"✅ Channel {channel_id_int}{channel_name} added to allowed channels!", ephemeral=True)
     else:
         await interaction.response.send_message(f"⚠️ Channel {channel_id_int} is already in the allowed list.", ephemeral=True)
+
+@bot.tree.command(name="get_announcement_channel", description="Show the current announcement channel.")
+async def get_announcement_channel(interaction: discord.Interaction):
+    if announcement_channel:
+        channel = bot.get_channel(announcement_channel)
+        if channel:
+            await interaction.response.send_message(f"📢 **Current announcement channel:** <#{announcement_channel}> ({channel.name})")
+        else:
+            await interaction.response.send_message(f"⚠️ **Current announcement channel ID:** {announcement_channel} (channel not accessible)")
+    else:
+        await interaction.response.send_message("❌ No announcement channel set. Use `/set_announcement_channel` to set one.")
 
 @bot.tree.command(name="channel_info", description="Show tracking and announcement channel information.")
 async def channel_info(interaction: discord.Interaction):
@@ -632,7 +451,6 @@ async def add_user(interaction: discord.Interaction, user: discord.User):
             'deceased': False,
             'deceased_days': 0,
             'missing_days': 0,
-            'consecutive_missed_days': 0,
             'revival': 0,
             'buffer': 0,
             'probation': False,
@@ -657,57 +475,6 @@ async def remove_user(interaction: discord.Interaction, user: discord.User):
         await interaction.response.send_message(f"✅ {user.name} removed from tracking!", ephemeral=True)
     else:
         await interaction.response.send_message("❌ User not found in tracking.")
-
-@bot.tree.command(name="join", description="Join the daily art tracking system yourself!")
-async def join_tracking(interaction: discord.Interaction):
-    user = interaction.user
-    member = await interaction.guild.fetch_member(user.id)
-    user_nickname = member.nick if member and member.nick else user.name
-    
-    if user.id not in tracked_users:
-        tracked_users[user.id] = {
-            'username': user.name,
-            'user_nickname': user_nickname,
-            'sent_image': False,
-            'parole_days': 0,
-            'deceased': False,
-            'deceased_days': 0,
-            'missing_days': 0,
-            'consecutive_missed_days': 0,
-            'revival': 0,
-            'buffer': 0,
-            'probation': False,
-            'ping': True,  # Enable pings by default for self-joining users
-            'duels_won': 0,
-            'duels_lost': 0
-        }
-        await interaction.response.send_message(f"🎨 Welcome to daily art tracking, {user_nickname}! You'll now be tracked for daily submissions and can participate in duels and chains. Good luck with your art journey!", ephemeral=True)
-    else:
-        await interaction.response.send_message(f"⚠️ You're already being tracked in the daily art system!", ephemeral=True)
-
-@bot.tree.command(name="leave", description="Leave the daily art tracking system.")
-async def leave_tracking(interaction: discord.Interaction):
-    user = interaction.user
-    
-    if user.id in tracked_users:
-        # Show final stats before leaving
-        user_data = tracked_users[user.id]
-        stats_message = (
-            f"📊 **Your Final Stats:**\n"
-            f"🎨 Parole Days: {user_data.get('parole_days', 0)}\n"
-            f"💀 Deceased Days: {user_data.get('deceased_days', 0)}\n"
-            f"📅 Missing Days: {user_data.get('missing_days', 0)}\n"
-            f"🔄 Revivals: {user_data.get('revival', 0)}\n"
-            f"🛑 Buffer Art: {user_data.get('buffer', 0)}\n"
-            f"⚔️ Duels Won: {user_data.get('duels_won', 0)}\n"
-            f"⚔️ Duels Lost: {user_data.get('duels_lost', 0)}\n\n"
-            f"Thanks for participating in daily art tracking! You can rejoin anytime with `/join`."
-        )
-        
-        del tracked_users[user.id]
-        await interaction.response.send_message(stats_message, ephemeral=True)
-    else:
-        await interaction.response.send_message("❌ You're not currently being tracked in the daily art system.", ephemeral=True)
 
 @bot.tree.command(name="list_users", description="List all users being tracked.")
 async def list_users(interaction: discord.Interaction):
@@ -736,7 +503,7 @@ async def list_attributes(interaction: discord.Interaction):
     else:
         attributes = [
             "username", "user_nickname", "sent_image", "parole_days", "deceased",
-            "deceased_days", "missing_days", "consecutive_missed_days", "revival", "buffer", "probation", "ping",
+            "deceased_days", "missing_days", "revival", "buffer", "probation", "ping",
             "duels_won", "duels_lost"
         ]
 
@@ -759,7 +526,6 @@ async def query_user(interaction: discord.Interaction, user: discord.User):
             f"⏳ Parole Days: {u['parole_days']}\n"
             f"💀 Deceased: {u['deceased']} ({u['deceased_days']} days)\n"
             f"🚫 Missing Days: {u['missing_days']}\n"
-            f"💔 Consecutive Missed: {u.get('consecutive_missed_days', 0)} days\n"
             f"🚀 Revivals: {u['revival']}\n"
             f"🔒 Probation: {u['probation']}\n"
             f"🔔 Ping Notifications: {u['ping']}\n"
@@ -904,18 +670,14 @@ async def sync_commands(interaction: discord.Interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
     
-    # Defer the response to prevent timeout
-    await interaction.response.defer(ephemeral=True)
-    
     try:
         # Try guild-specific sync first (faster)
         guild = interaction.guild
-        await interaction.followup.send("🔄 Syncing commands to this server...", ephemeral=True)
         synced = await bot.tree.sync(guild=guild)
-        await interaction.followup.send(f"✅ Successfully synced {len(synced)} commands to this server!", ephemeral=True)
+        await interaction.response.send_message(f"✅ Successfully synced {len(synced)} commands to this server!", ephemeral=True)
         logger.info(f"Commands manually synced to guild {guild.name} by {interaction.user.name}: {len(synced)} commands")
     except Exception as e:
-        await interaction.followup.send(f"❌ Error syncing commands: {e}", ephemeral=True)
+        await interaction.response.send_message(f"❌ Error syncing commands: {e}", ephemeral=True)
         logger.error(f"Error manually syncing commands: {e}")
 
 @bot.tree.command(name="sync_global", description="Force sync commands globally (Admin only, slower).")
@@ -925,16 +687,12 @@ async def sync_global(interaction: discord.Interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
     
-    # Defer the response since global sync can take a while
-    await interaction.response.defer(ephemeral=True)
-    
     try:
-        await interaction.followup.send("🔄 Starting global command sync... This may take a moment.", ephemeral=True)
         synced = await bot.tree.sync()
-        await interaction.followup.send(f"✅ Successfully synced {len(synced)} commands globally!", ephemeral=True)
+        await interaction.response.send_message(f"✅ Successfully synced {len(synced)} commands globally!", ephemeral=True)
         logger.info(f"Commands manually synced globally by {interaction.user.name}: {len(synced)} commands")
     except Exception as e:
-        await interaction.followup.send(f"❌ Error syncing commands: {e}", ephemeral=True)
+        await interaction.response.send_message(f"❌ Error syncing commands: {e}", ephemeral=True)
         logger.error(f"Error manually syncing commands: {e}")
 
 @bot.tree.command(name="list_badges", description="List all available badges.")
@@ -975,103 +733,6 @@ async def badge_help(interaction: discord.Interaction):
     )
     
     await interaction.response.send_message(help_message, ephemeral=True)
-
-@bot.tree.command(name="clear_duels_and_chains", description="Clear all active duels and chains (Admin only).")
-async def clear_duels_and_chains(interaction: discord.Interaction):
-    # Check if user has admin permissions or mod role
-    if not has_admin_or_mod_permissions(interaction):
-        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
-        return
-    
-    # Defer the response since this might take a moment
-    await interaction.response.defer(ephemeral=True)
-    
-    try:
-        # Clear all duels
-        cleared_duels = 0
-        try:
-            from duel import clear_all_duels
-            cleared_duels = clear_all_duels()
-        except Exception as e:
-            logger.warning(f"Could not clear duels: {e}")
-        
-        # Clear all chains
-        cleared_chains = 0
-        cleared_submissions = 0
-        try:
-            from chain import clear_all_chains
-            cleared_chains, cleared_submissions = clear_all_chains()
-        except Exception as e:
-            logger.warning(f"Could not clear chains: {e}")
-        
-        success_message = f"✅ **Duels and Chains cleared!**\n\n"
-        success_message += f"⚔️ **Duels cleared:** {cleared_duels}\n"
-        success_message += f"🔗 **Chains cleared:** {cleared_chains}\n"
-        success_message += f"📸 **Submissions cleared:** {cleared_submissions}\n\n"
-        success_message += f"🧹 All active duels and chains have been removed!"
-        
-        await interaction.followup.send(success_message, ephemeral=True)
-        
-        # Also announce in the announcement channel if configured
-        if announcement_channel:
-            channel = bot.get_channel(announcement_channel)
-            if channel:
-                announce_message = f"🧹 **Duels & Chains Cleared** 🧹\n"
-                announce_message += f"All active duels and art chains have been cleared by {interaction.user.display_name}.\n"
-                if cleared_duels > 0 or cleared_chains > 0:
-                    announce_message += f"⚔️ {cleared_duels} duels and 🔗 {cleared_chains} chains were removed."
-                else:
-                    announce_message += f"No active duels or chains were found."
-                await channel.send(announce_message)
-        
-        logger.info(f"Admin {interaction.user.name} cleared {cleared_duels} duels and {cleared_chains} chains")
-        
-    except Exception as e:
-        await interaction.followup.send(f"❌ Error clearing duels and chains: {e}", ephemeral=True)
-        logger.error(f"Error clearing duels and chains: {e}")
-
-@bot.tree.command(name="reset_season_stats", description="Reset all user stats for new season (Admin only).")
-async def reset_season_stats(interaction: discord.Interaction):
-    # Check if user has admin permissions or mod role
-    if not has_admin_or_mod_permissions(interaction):
-        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
-        return
-    
-    # Defer the response since this might take a moment
-    await interaction.response.defer(ephemeral=True)
-    
-    try:
-        # Reset all user stats
-        user_count = len(tracked_users)
-        reset_user_stats()
-        
-        # Clear all duels
-        cleared_duels = 0
-        try:
-            from duel import clear_all_duels
-            cleared_duels = clear_all_duels()
-        except Exception as e:
-            logger.warning(f"Could not clear duels: {e}")
-        
-        success_message = f"✅ **Season stats reset completed!**\n"
-        success_message += f"📊 Reset stats for {user_count} users\n"
-        success_message += f"⚔️ Cleared {cleared_duels} duels\n"
-        success_message += f"🔄 All users now have fresh stats for the new season!"
-        
-        await interaction.followup.send(success_message, ephemeral=True)
-        
-        # Also announce in the announcement channel if configured
-        if announcement_channel:
-            channel = bot.get_channel(announcement_channel)
-            if channel:
-                announce_message = f"🔄 **Season Stats Reset** 🔄\n"
-                announce_message += f"All user stats have been manually reset by {interaction.user.display_name}!\n"
-                announce_message += f"Everyone starts fresh! 🎉"
-                await channel.send(announce_message)
-        
-    except Exception as e:
-        await interaction.followup.send(f"❌ Error resetting season stats: {e}", ephemeral=True)
-        logger.error(f"Error resetting season stats: {e}")
 
 @bot.tree.command(name="season_info", description="Show current season information.")
 async def season_info(interaction: discord.Interaction):
@@ -1163,9 +824,9 @@ async def set_season_number(interaction: discord.Interaction, season_num: int):
 
 
 # Edit the seconds 
-@tasks.loop(minutes=30)  # Save data every 8 hours
+@tasks.loop(seconds=time_debug)
 async def send_daily_art_message():
-    global current_day, season, season_theme, season_days, last_daily_message_day
+    global current_day, season, season_theme, season_days
 
     users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
     users_sent = [u for u in tracked_users.values() if u['sent_image']]
@@ -1176,54 +837,43 @@ async def send_daily_art_message():
     message += "\n**⛓️ Jailed:**\n"
     message += "🧱"*20 + "\n"
 
-    # Filter users by category first
-    jailed_users = [user for user in users_not_sent if not user['deceased']]
-    deceased_users = [user for user in users_not_sent if user['deceased']]
-    
-    # Process jailed users
-    for i, user in enumerate(jailed_users):
-        message += f"|| {user['user_nickname']} 💨{user['missing_days']} || "
+    for user in users_not_sent:
+        if not user['deceased']:
+            message += f"|| {user['user_nickname']} 💨{user['missing_days']} || "
+        if user != users_not_sent[-1]:
+            message += r"\| "
 
     message += "\n" + "🧱"*20 + "\n"
     
     message += "\n**🪦 Deceased:**\n"
     message += "☁️"*20 + "\n"
     
-    # Process deceased users  
-    for i, user in enumerate(deceased_users):
-        message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']}) || "
+    for user in users_not_sent:
+        if user['deceased']:
+            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']}) || "
+        if user != users_not_sent[-1]:
+            message += r"\| "
     
     message += "\n" + "☁️"*20
 
-    # Daily reset logic at 12:30 AM EST (4:30 AM UTC) - only run once per day
+    channel = bot.get_channel(announcement_channel)
+    if not channel:
+        logger.error(f"Announcement channel {announcement_channel} not found or not accessible")
+        return
+
+    # Daily reset logic at 12:30 am, run loop of 30 min, check if time // 30 == 0 and hour == 1
     now = datetime.now()   
-    print(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
-    logger.info(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
-    
-    # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
-    # 30-minute window centered around 12:30 AM EST - ONLY ADVANCE DAY (no message sent)
-    if now.hour == 4 and 15 <= now.minute < 45 and last_daily_message_day != current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
-        last_daily_message_day = current_day
-        
-        # Get channel for sending message
-        channel = bot.get_channel(announcement_channel)
-        
+    if now.second % 30 != 0:
         # Only send daily message and advance day if there are tracked users
         if tracked_users:
             if channel:
-                print("Sending daily art message - 12:30 AM EST...")
-                logger.info("Sending daily art message - 12:30 AM EST...")
+                print("Sending daily art message...")
+                logger.info("Sending daily art message...")
                 await channel.send(message)
-            else:
-                logger.error(f"Could not send daily message - announcement channel {announcement_channel} not found")
 
             print(f"Day {current_day} has ended!")
             logger.info(f"Day {current_day} has ended!")
             current_day += 1
-            
-            # Auto-commit backup.json after day advancement
-            await auto_commit_backup()
-            
         else:
             print("No tracked users - pausing season progression")
             logger.info("No tracked users - season paused until users are added")
@@ -1264,25 +914,12 @@ async def send_daily_art_message():
                 results_message += f"**{rank}.** {', '.join(grouped_users)} | 🏆 Parole: {prev_user['parole_days']} | ⏳ Missing: {prev_user['missing_days']} | 😇 Revival: {prev_user['revival']}\n"
 
             results_message += f"\n## **Funny Achievements:**\n"
-            
-            # Check if we have any users to avoid crashes
-            if not tracked_users:
-                results_message += "No tracked users for achievements.\n"
-            else:
-                max_revival = max(user['revival'] for user in tracked_users.values())
-                highest_revival_users = [user['user_nickname'] for user in tracked_users.values() if user['revival'] == max_revival]
-                max_buffer = max(user['buffer'] for user in tracked_users.values())
-                highest_buffer_users = [user['user_nickname'] for user in tracked_users.values() if user['buffer'] == max_buffer]
-                
-                # Only show achievements if someone actually has meaningful stats
-                if max_buffer > 0:
-                    results_message += f"**💾 Most Remaining Buffer Art:** {', '.join(highest_buffer_users)} - {max_buffer}\n"
-                
-                if max_revival > 0:
-                    results_message += f"**😇 Most Revived:** {', '.join(highest_revival_users)} - {max_revival}\n"
-                
-                if max_buffer == 0 and max_revival == 0:
-                    results_message += "🏆 **Perfect Season!** No one died or needed buffer art! 🎉\n"
+            max_revival = max(user['revival'] for user in tracked_users.values())
+            highest_revival_users = [user['user_nickname'] for user in tracked_users.values() if user['revival'] == max_revival]
+            max_buffer = max(user['buffer'] for user in tracked_users.values())
+            highest_buffer_users = [user['user_nickname'] for user in tracked_users.values() if user['buffer'] == max_buffer]
+            results_message += f"**💾 Most Buffer Art:** {', '.join(highest_buffer_users)} - {max_buffer}\n"
+            results_message += f"**😇 Most Revived:** {', '.join(highest_revival_users)} - {max_revival}\n"
             
             # Add duel rankings
             duel_rankings = get_duel_rankings()
@@ -1304,252 +941,103 @@ async def send_daily_art_message():
             
             results_message += f"\nCongratulations to all participants! See you all next season🎉\n"
             results_message += f"🎨 **The {season_theme} badge** 🎨\n"
-            
-            # Get channel for season end messages
-            channel = bot.get_channel(announcement_channel)
-            if channel:
-                await channel.send(results_message, file=badge)
-            else:
-                logger.error(f"Could not send season end results - announcement channel {announcement_channel} not found")
-
-            # Reset all user stats for the new season
-            reset_user_stats()
-            
-            # Clear any active duels for the new season
-            try:
-                from duel import clear_all_duels
-                clear_all_duels()
-                logger.info("Cleared all active duels for new season")
-            except Exception as e:
-                logger.warning(f"Could not clear duels for new season: {e}")
+            await channel.send(results_message, file=badge)
 
             current_day = 1
             season += 1
             season_theme = f"{season_theme}"
             season_message = f"# 🎉 **Season {season} begins tomorrow!** 🎉\n"
-            season_message += f"📊 **All user stats have been reset!** Fresh start for everyone! 🔄\n"
-            
-            if channel:
-                await channel.send(season_message)
-            else:
-                logger.error(f"Could not send new season message - announcement channel {announcement_channel} not found")
+            await channel.send(season_message)
 
         for user in tracked_users.values():
-            # Initialize consecutive_missed_days if it doesn't exist (for existing users)
-            if 'consecutive_missed_days' not in user:
-                user['consecutive_missed_days'] = 0
-            
-            # Process daily submission status first
             if not user['sent_image']:
                 if not user['probation']:
-                    # Increment consecutive missed days
-                    user['consecutive_missed_days'] += 1
+                    if not user['deceased']:
+                        user['deceased'] = True
+                    user['deceased_days'] += 1
                     user['missing_days'] += 1
-                    
-                    # Buffer rules: Can only save from death if NOT consecutive days
-                    # If consecutive_missed_days >= 2, buffer cannot save them
-                    can_use_buffer = user['consecutive_missed_days'] == 1 and user['buffer'] > 0
-                    
-                    if can_use_buffer:
-                        # Consume buffer to save from missing day (only on first consecutive miss)
-                        user['buffer'] -= 1
-                        user['missing_days'] -= 1
-                        logger.info(f"Buffer saved {user['user_nickname']} from missing day (non-consecutive)")
-                        
-                        # Buffer saved them - revive if needed
-                        if user['deceased']:
-                            user['revival'] += 1
-                            user['deceased'] = False
-                    else:
-                        # No buffer can save them OR consecutive miss
-                        if user['consecutive_missed_days'] >= 2:
-                            logger.info(f"{user['user_nickname']} missed {user['consecutive_missed_days']} consecutive days - buffer disabled")
-                        
-                        # Mark as deceased
-                        if not user['deceased']:
-                            user['deceased'] = True
-                        user['deceased_days'] += 1
             else:
-                # User submitted art - reset consecutive counter and restore buffer functionality
-                user['consecutive_missed_days'] = 0
                 user['parole_days'] += 1
                 if user['deceased']:
                     user['revival'] += 1
                     user['deceased'] = False
-                
-                # Reduce missing days when they submit
                 if user['missing_days'] > 0:
                     user['missing_days'] -= 1
-                
-                # Also consume buffer if they have any remaining missing days
-                if user['missing_days'] > 0 and user['buffer'] > 0:
-                    reduction = min(user['missing_days'], user['buffer'])
-                    user['missing_days'] -= reduction
-                    user['buffer'] -= reduction
-                    logger.info(f"Auto-consumed {reduction} buffer for {user['user_nickname']} to reduce remaining missing days")
-                    
-            # Reset daily submission flag for next day
+            if user['missing_days'] > 0:
+                reduction = min(user['missing_days'], user['buffer'])
+                user['missing_days'] -= reduction
+                user['buffer'] -= reduction
             user['sent_image'] = False
         
 
 
-@tasks.loop(hours=time_deploy)  # Save data every 8 hours
+@tasks.loop(seconds=time_debug)
 async def save_data_task():
     data = {
         "current_day": current_day,
         "season": season,
         "tracked_users": tracked_users,
         "announcement_channel": announcement_channel,
-        "allowed_channels": allowed_channels,
         "duel": get_duel_data(),
         "chain": get_chain_data()
     }
     
-    with open(saved_data, "w") as f:
+    with open(SAVED_DATA_PATH, "w") as f:
         json.dump(data, f, indent=4)
     
     print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-
-@tasks.loop(minutes=30)  # Check every 30 minutes to catch both warning times
+@tasks.loop(seconds=time_debug)
 async def ping_jailed_users():
-    global last_warning_1_day, last_warning_2_day
-    
-    now = datetime.now()
-    # Add detailed time logging for debugging
-    print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
-    logger.info(f"ping_jailed_users check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
-    
-    message = ""
-    
-    # EST is UTC-5 in standard time (winter), UTC-4 in daylight time (summer)
-    # For now, using UTC-4 (EDT) - 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
-    
-    # Send daily art message WITH warnings at 10-10:30 PM EST and 11-11:30 PM EST
-    if now.hour == 2 and now.minute < 30 and last_warning_1_day != current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
-        print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
-        logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
-        last_warning_1_day = current_day
-        
-        # Build the daily art message inline
-        users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
-        users_sent = [u for u in tracked_users.values() if u['sent_image']]
-        
-        message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
-        message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
-        message += "\n**⛓️ Jailed:**\n"
-        message += "🧱"*20 + "\n"
-        
-        # Filter jailed and deceased users
-        jailed_users = [user for user in users_not_sent if not user['deceased']]
-        deceased_users = [user for user in users_not_sent if user['deceased']]
-        
-        for i, user in enumerate(jailed_users):
-            message += f"|| {user['user_nickname']} 💨{user['missing_days']}"
-            if user['buffer'] > 0:
-                message += f" (🛑{user['buffer']})"
-            message += " || "
-        
-        message += "\n" + "🧱"*20 + "\n"
-        message += "\n**🪦 Deceased:**\n"
-        message += "☁️"*20 + "\n"
-        
-        for i, user in enumerate(deceased_users):
-            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']})"
-            if user['buffer'] > 0:
-                message += f" 🛑{user['buffer']}"
-            message += " || "
-        
-        message += "\n" + "☁️"*20
-        
-        # Add warning message
-        message += "\n\n🚨 **Daily Art Reminder!** 🚨\n"
-        message += "**You have roughly 2 hours before the daily reset!** ⏰\n\n"
-        
-        # Find users who need to submit
-        ping_users = []
+    ping_users = []
+    for user_id, user in tracked_users.items():
+        if user['ping'] and not user['sent_image']:
+            ping_users.append(user_id)
+
+    print(ping_users)
+    logger.debug(f"Users to ping: {ping_users}")
+    if ping_users:
+        print("Pinging jailed users...")
+        logger.info("Pinging jailed users...")
+        message = "🚨 **Final Warning!** 🚨\n"
+
         for user_id, user in tracked_users.items():
             if user['ping'] and not user['sent_image']:
                 member = bot.get_user(user_id)
                 if member:
-                    ping_users.append(member.mention)
+                    message += f"{member.mention} "
+
+        message += "\n**You have 2 hours before you're shipped to the graveyard!!** 🪦"
         
-        if ping_users:
-            message += f"Haven't submitted today: {' '.join(ping_users)}\n"
-            message += "**Don't forget to submit your daily art! 🎨**"
-        else:
-            message += "**Great job everyone! All tracked users have submitted their art today! 🎉**"
-        
-    elif now.hour == 3 and now.minute < 30 and last_warning_2_day != current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
-        print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
-        logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
-        last_warning_2_day = current_day
-        
-        # Build the daily art message inline
-        users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
-        users_sent = [u for u in tracked_users.values() if u['sent_image']]
-        
-        message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
-        message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
-        message += "\n**⛓️ Jailed:**\n"
-        message += "🧱"*20 + "\n"
-        
-        # Filter jailed and deceased users
-        jailed_users = [user for user in users_not_sent if not user['deceased']]
-        deceased_users = [user for user in users_not_sent if user['deceased']]
-        
-        for i, user in enumerate(jailed_users):
-            message += f"|| {user['user_nickname']} 💨{user['missing_days']}"
-            if user['buffer'] > 0:
-                message += f" (🛑{user['buffer']})"
-            message += " || "
-        
-        message += "\n" + "🧱"*20 + "\n"
-        message += "\n**🪦 Deceased:**\n"
-        message += "☁️"*20 + "\n"
-        
-        for i, user in enumerate(deceased_users):
-            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']})"
-            if user['buffer'] > 0:
-                message += f" 🛑{user['buffer']}"
-            message += " || "
-        
-        message += "\n" + "☁️"*20
-        
-        # Add final warning message
-        message += "\n\n⚠️ **FINAL HOUR WARNING!** ⚠️\n"
-        message += "**You have approximately 1 hour before the daily reset!** ⏰💀\n\n"
-        
-        # Find users who need to submit
-        ping_users = []
-        for user_id, user in tracked_users.items():
-            if user['ping'] and not user['sent_image']:
-                member = bot.get_user(user_id)
-                if member:
-                    ping_users.append(member.mention)
-        
-        if ping_users:
-            message += f"Still need to submit: {' '.join(ping_users)}\n"
-            message += "**Last chance to avoid the graveyard! Submit your art NOW! 🏃‍♂️💨**"
-        else:
-            message += "**Excellent! All tracked users are safe for today! 🎨✅**"
-    
-    if message:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
         channel = bot.get_channel(announcement_channel)
         if channel:
             await channel.send(message)
-        else:
-            logger.error(f"Could not send warning message - announcement channel {announcement_channel} not found")
 
-@tasks.loop(hours=time_deploy)  # Check every hour for expired duels
+@tasks.loop(seconds=60)  # Check every minute for debug mode
 async def cleanup_duels():
-    """Clean up expired duels every hour"""
+    """Clean up expired duels every minute in debug mode"""
     try:
-        cleaned = await cleanup_expired_duels(bot, allowed_channels, announcement_channel)
+        cleaned = await cleanup_expired_duels(bot, allowed_channels)
         if cleaned > 0:
             logger.info(f"Cleaned up {cleaned} expired duels")
     except Exception as e:
         logger.error(f"Error cleaning up duels: {e}")
+            
+# @tasks.loop(hours=24)
+# async def ping_jailed_users():
+#     # Exactly at 10 pm
+#     if datetime.now().hour == 22 and datetime.now().minute == 0:
+#         print("Pinging jailed users...")
+#         message = ""
+#         for user_id, user in tracked_users.items():
+#             if user['ping'] and user['sent_image'] == False:
+#                 # message += f"@{user['username']} "
+#                 member = bot.get_user(user_id)
+#                 message += f"{member.mention} "
+#         message += "\nYou Have 2 Hours Before Shipping to Graveyard!!! 🪦🪦🪦"
+#         channel = bot.get_channel()
+#         if channel:
+#             await channel.send(message)
 
 bot.run(BOT_TOKEN)
