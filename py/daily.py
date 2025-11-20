@@ -2,8 +2,8 @@
 daily.py
 This file contains functions related to the daily art tracking aspect of the bot
 """
-import discord
-from discord.ext import tasks
+import discord # type: ignore
+from discord.ext import tasks  # type: ignore
 from datetime import datetime
 import os
 import json
@@ -228,34 +228,7 @@ async def on_message(message):
 # Edit the seconds 
 @tasks.loop(minutes=30)  # Save data every 8 hours
 async def send_daily_art_message():
-
-    users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
-    users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
-    print(shared.season_theme)
-    logger.debug(f"Current season theme: {shared.season_theme}")
-    message = f"## **Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
-    message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
-    message += "\n**⛓️ Jailed:**\n"
-    message += "🧱"*20 + "\n"
-
-    # Filter users by category first
-    jailed_users = [user for user in users_not_sent if not user['deceased']]
-    deceased_users = [user for user in users_not_sent if user['deceased']]
-    
-    # Process jailed users
-    for i, user in enumerate(jailed_users):
-        message += f"|| {user['user_nickname']} 💨{user['missing_days']} || "
-
-    message += "\n" + "🧱"*20 + "\n"
-    
-    message += "\n**🪦 Deceased:**\n"
-    message += "☁️"*20 + "\n"
-    
-    # Process deceased users  
-    for i, user in enumerate(deceased_users):
-        message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']}) || "
-    
-    message += "\n" + "☁️"*20
+    message = build_reminder_message(3)
 
     # Daily reset logic at 12:30 AM EST (4:30 AM UTC) - only run once per day
     now = datetime.now()   
@@ -473,6 +446,109 @@ async def save_data_task():
     print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
+def format_username(username):
+    # escapes all special formatting characters
+    username = (
+        username
+        .replace("*", "\\*")
+        .replace("_", "\\_")
+        .replace("|", "\\|")
+        .replace("`", "\\`")
+        .replace("~", "\\~")
+    )
+
+    # add other formatting options as needed
+    return username
+
+
+def build_reminder_message(num):        
+    # Build the daily art message inline
+    USERS_PER_LINE = 4
+
+    users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
+    users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
+    
+    message = f"## **Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
+    message += f"**🔄 On parole:** \n"
+    for i, user in enumerate(users_sent):
+        if i % USERS_PER_LINE != 0:
+            message += "  •  "
+        elif i != 0:
+            message += "\n"
+        message += f"{format_username(user['user_nickname'])}"
+            
+    message += "\n\n**⛓️ Jailed:**\n"
+    # message += "🧱"*20 + "\n"
+    
+    # Filter jailed and deceased users
+    jailed_users = [user for user in users_not_sent if not user['deceased']]
+    deceased_users = [user for user in users_not_sent if user['deceased']]
+    
+    # this code prints emojis
+    # for i, user in enumerate(jailed_users):
+    #     message += f"|| {user['user_nickname']} 💨{user['missing_days']}"
+    #     if user['buffer'] > 0:
+    #         message += f" (🛑{user['buffer']})"
+    #     message += " || "
+    
+    for i, user in enumerate(jailed_users):
+        if i % USERS_PER_LINE != 0:
+            message += "  •  "
+        elif i != 0:
+            message += "\n"
+        message += f"{format_username(user['user_nickname'])}"
+
+    # message += "\n" + "🧱"*20 + "\n"
+    message += "\n\n**🪦 Deceased:**\n"
+    # message += "☁️"*20 + "\n"
+    
+    # for i, user in enumerate(deceased_users):
+    #     message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']})"
+    #     if user['buffer'] > 0:
+    #         message += f" 🛑{user['buffer']}"
+    #     message += " || "
+
+    for i, user in enumerate(deceased_users):
+        if i % USERS_PER_LINE != 0:
+            message += "  •  "
+        message += f"{format_username(user['user_nickname'])}"
+        if i % USERS_PER_LINE == USERS_PER_LINE - 1:
+            message += "\n"
+
+    # message += "\n" + "☁️"*20
+    
+    if num == 1 or num == 2:
+        # Add warning message
+        message += "\n\n🚨 **Daily Art Reminder!** 🚨\n"
+        message += f"**You have roughly {3 - num} hour{"s" if num == 1 else ""} before the daily reset!** ⏰\n\n"
+    
+    # Find users who need to submit
+    ping_users = []
+    for user_id, user in shared.tracked_users.items():
+        if user['ping'] and not user['sent_image']:
+            member = bot.get_user(user_id)
+            if member:
+                ping_users.append(member.mention)
+    
+    if num == 1:
+        if ping_users:
+            message += f"Haven't submitted today: {' '.join(ping_users)}\n"
+            message += "**Don't forget to submit your daily art! 🎨**"
+        elif not jailed_users and not deceased_users:
+            message += "**Great job everyone! All tracked users have submitted their art today! 🎉**"
+        else:
+            message += "**Make sure to submit your art if you haven't already!**"
+        message += "\n-# You can turn on ping reminders with the /ping command"
+    elif num == 2:
+        if ping_users:
+            message += f"Still need to submit: {' '.join(ping_users)}\n"
+            message += "**Last chance to avoid the graveyard! Submit your art NOW! 🏃‍♂️💨**"
+        elif not jailed_users and not deceased_users:
+            message += "**Excellent! All tracked users are safe for today! 🎨✅**"    
+        else:
+            message += "**Make sure to submit your art if you haven't already!**"
+    
+    return message
 
 @tasks.loop(minutes=30)  # Check every 30 minutes to catch both warning times
 async def ping_jailed_users():
@@ -482,123 +558,28 @@ async def ping_jailed_users():
     print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
     logger.info(f"ping_jailed_users check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
     
-    message = ""
+    messages = []
     
     # EST is UTC-5 in standard time (winter), UTC-4 in daylight time (summer)
     # For now, using UTC-4 (EDT) - 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
     
     # Send daily art message WITH warnings at 10-10:30 PM EST and 11-11:30 PM EST
-    if now.hour == 2 and now.minute < 30 and last_warning_1_day != shared.current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
+    if now.hour == 2 and now.minute < 30 and shared.last_warning_1_day != shared.current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
         print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
-        last_warning_1_day = shared.current_day
+        shared.last_warning_1_day = shared.current_day
+        messages = build_reminder_message()
         
-        # Build the daily art message inline
-        users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
-        users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
-        
-        message = f"## **Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
-        message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
-        message += "\n**⛓️ Jailed:**\n"
-        message += "🧱"*20 + "\n"
-        
-        # Filter jailed and deceased users
-        jailed_users = [user for user in users_not_sent if not user['deceased']]
-        deceased_users = [user for user in users_not_sent if user['deceased']]
-        
-        for i, user in enumerate(jailed_users):
-            message += f"|| {user['user_nickname']} 💨{user['missing_days']}"
-            if user['buffer'] > 0:
-                message += f" (🛑{user['buffer']})"
-            message += " || "
-        
-        message += "\n" + "🧱"*20 + "\n"
-        message += "\n**🪦 Deceased:**\n"
-        message += "☁️"*20 + "\n"
-        
-        for i, user in enumerate(deceased_users):
-            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']})"
-            if user['buffer'] > 0:
-                message += f" 🛑{user['buffer']}"
-            message += " || "
-        
-        message += "\n" + "☁️"*20
-        
-        # Add warning message
-        message += "\n\n🚨 **Daily Art Reminder!** 🚨\n"
-        message += "**You have roughly 2 hours before the daily reset!** ⏰\n\n"
-        
-        # Find users who need to submit
-        ping_users = []
-        for user_id, user in shared.tracked_users.items():
-            if user['ping'] and not user['sent_image']:
-                member = bot.get_user(user_id)
-                if member:
-                    ping_users.append(member.mention)
-        
-        if ping_users:
-            message += f"Haven't submitted today: {' '.join(ping_users)}\n"
-            message += "**Don't forget to submit your daily art! 🎨**"
-        else:
-            message += "**Great job everyone! All tracked users have submitted their art today! 🎉**"
-        
-    elif now.hour == 3 and now.minute < 30 and last_warning_2_day != shared.current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
+    elif now.hour == 3 and now.minute < 30 and shared.last_warning_2_day != shared.current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
         print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
-        last_warning_2_day = shared.current_day
-        
-        # Build the daily art message inline
-        users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
-        users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
-        
-        message = f"## **Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
-        message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
-        message += "\n**⛓️ Jailed:**\n"
-        message += "🧱"*20 + "\n"
-        
-        # Filter jailed and deceased users
-        jailed_users = [user for user in users_not_sent if not user['deceased']]
-        deceased_users = [user for user in users_not_sent if user['deceased']]
-        
-        for i, user in enumerate(jailed_users):
-            message += f"|| {user['user_nickname']} 💨{user['missing_days']}"
-            if user['buffer'] > 0:
-                message += f" (🛑{user['buffer']})"
-            message += " || "
-        
-        message += "\n" + "🧱"*20 + "\n"
-        message += "\n**🪦 Deceased:**\n"
-        message += "☁️"*20 + "\n"
-        
-        for i, user in enumerate(deceased_users):
-            message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']})"
-            if user['buffer'] > 0:
-                message += f" 🛑{user['buffer']}"
-            message += " || "
-        
-        message += "\n" + "☁️"*20
-        
-        # Add final warning message
-        message += "\n\n⚠️ **FINAL HOUR WARNING!** ⚠️\n"
-        message += "**You have approximately 1 hour before the daily reset!** ⏰💀\n\n"
-        
-        # Find users who need to submit
-        ping_users = []
-        for user_id, user in shared.tracked_users.items():
-            if user['ping'] and not user['sent_image']:
-                member = bot.get_user(user_id)
-                if member:
-                    ping_users.append(member.mention)
-        
-        if ping_users:
-            message += f"Still need to submit: {' '.join(ping_users)}\n"
-            message += "**Last chance to avoid the graveyard! Submit your art NOW! 🏃‍♂️💨**"
-        else:
-            message += "**Excellent! All tracked users are safe for today! 🎨✅**"
+        shared.last_warning_2_day = shared.current_day
+        messages = build_reminder_message()
     
-    if message:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
+    if messages:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
         channel = bot.get_channel(shared.announcement_channel)
         if channel:
-            await channel.send(message)
+            for message in messages:
+                await channel.send(message)
         else:
             logger.error(f"Could not send warning message - announcement channel {shared.announcement_channel} not found")

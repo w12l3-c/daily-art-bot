@@ -3,7 +3,7 @@ bot.py
 This file contains the bot instance, and acts as the entry point for the bot
 """
 
-from discord.ext import tasks
+from discord.ext import tasks # type: ignore
 import json
 import asyncio
 from duel import register_duel_commands, set_tracked_users_reference, cleanup_expired_duels, load_duel_data
@@ -12,7 +12,7 @@ from chain import register_chain_commands, set_tracked_users_reference as set_ch
 import shared
 from shared import bot, logger
 import daily
-import commands
+import  daily_commands
 
 def load_data():
     try:
@@ -108,6 +108,13 @@ async def on_ready():
     daily.ping_jailed_users.start()
     cleanup_duels.start()
 
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+    
+    
 
 
 @tasks.loop(hours=shared.time_deploy)  # Check every hour for expired duels

@@ -3,10 +3,10 @@ commands.py
 This file contains implementations of Discord command functions
 """
 
-import discord
-from discord import app_commands
+import discord # type: ignore
+from discord import app_commands # type: ignore
 import os
-from daily import reset_user_stats
+from daily import reset_user_stats, build_reminder_message
 import shared
 from shared import bot, logger
 
@@ -449,7 +449,7 @@ async def edit_user(interaction: discord.Interaction, user: discord.User, attrib
     
     # Check if user exists
     if user.id not in shared.tracked_users:
-        await interaction.response.send_message(f"❌ User {user.name} not found in tracking. Available users: {[u['username'] for u in shared.tracked_users.values()]}")
+        await interaction.response.send_message(f"❌ User {user.name} not found in tracking.")
         logger.warning(f"User {user.name} (ID: {user.id}) not found in shared.tracked_users")
         return
     
@@ -732,3 +732,36 @@ async def set_season_number(interaction: discord.Interaction, season_num: int):
     season = season_num
     await interaction.response.send_message(f"✅ Season number changed from **{old_season}** to **{season}**", ephemeral=True)
     logger.info(f"Season number changed from {old_season} to {season} by {interaction.user.name}")
+
+@bot.tree.command(name="debug", description="Debugging")
+@app_commands.describe(param="param")
+async def debug(interaction: discord.Interaction, param: int):
+    if not shared.has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+
+    message = build_reminder_message(param)
+    logger.info(message)
+    logger.info(f"this message is {len(message)} characters")
+    channel = bot.get_channel(1440845080742199426)
+    if channel:
+        await channel.send(message)
+
+
+@bot.tree.command(name="ping", description="Decide if you want the bot to ping you if you haven't submitted a daily before the deadline")
+@app_commands.describe(value="If the bot should ping you")
+async def debug(interaction: discord.Interaction, value: bool):
+    user = interaction.user
+    if user.id not in shared.tracked_users:
+        await interaction.response.send_message(f"❌ User {user.name} not found in tracking.")
+        logger.warning(f"User {user.name} (ID: {user.id}) not found in shared.tracked_users")
+        return
+
+    old_value = shared.tracked_users[user.id]["ping"]
+    try:
+        shared.tracked_users[user.id]["ping"] = value
+        await interaction.response.send_message(f"✅ {shared.tracked_users[user.id]['user_nickname']}'s `{"ping"}` is now `{value}`")
+        logger.info(f"Successfully updated {user.name}'s {"ping"} from {old_value} to {value}")
+    except ValueError:
+        await interaction.response.send_message("⚠️ Invalid value type.")
+        logger.error(f"Invalid value type when editing user {user.name}'s {"ping"} to {value}")
