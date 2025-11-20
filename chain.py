@@ -1,3 +1,8 @@
+"""
+chain.py
+This file contains functions related to the chain-art aspect of the bot
+"""
+
 import discord
 from discord.ext import commands
 from discord import app_commands
