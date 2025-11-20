@@ -7,13 +7,16 @@ from discord.ext import tasks
 from datetime import datetime
 import os
 import json
-from bot import bot, allowed_channels, logger, tracked_users, reset_user_stats, announcement_channel, time_deploy, saved_data, subprocess, handle_badge_upload
+import subprocess
 from duel import update_duel_progress, get_duel_rankings, get_duel_data
 from chain import process_chain_submission, get_chain_data
 
+import shared
+from shared import bot, logger
+
 def reset_user_stats():
     """Reset all user stats for a new season while preserving core identity info"""
-    for user in tracked_users.values():
+    for user in shared.tracked_users.values():
         # Keep these fields (user identity and preferences)
         username = user['username']
         user_nickname = user['user_nickname'] 
@@ -37,25 +40,25 @@ def reset_user_stats():
             'duels_lost': 0
         })
     
-    logger.info(f"Reset stats for {len(tracked_users)} users for new season")
-    print(f"✅ Reset stats for {len(tracked_users)} users for new season")
+    logger.info(f"Reset stats for {len(shared.tracked_users)} users for new season")
+    print(f"✅ Reset stats for {len(shared.tracked_users)} users for new season")
 
 async def auto_commit_backup():
     """Automatically commit and push backup.json to git"""
     try:
         # Add backup.json to git
         result = subprocess.run(['git', 'add', 'backup.json'], 
-                              capture_output=True, text=True, cwd=os.getcwd())
+                            capture_output=True, text=True, cwd=os.getcwd())
         if result.returncode != 0:
             logger.warning(f"Git add failed: {result.stderr}")
             return False
         
         # Create commit message with current day and datetime
-        commit_message = f"Auto-backup: Day {current_day} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S EST')}"
+        commit_message = f"Auto-backup: Day {shared.current_day} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S EST')}"
         
         # Commit the changes
         result = subprocess.run(['git', 'commit', '-m', commit_message], 
-                              capture_output=True, text=True, cwd=os.getcwd())
+                            capture_output=True, text=True, cwd=os.getcwd())
         if result.returncode != 0:
             # If commit fails (e.g., no changes), log but don't treat as error
             logger.info(f"Git commit: {result.stdout if result.stdout else result.stderr}")
@@ -63,19 +66,18 @@ async def auto_commit_backup():
         
         # Push to remote
         result = subprocess.run(['git', 'push', 'origin'], 
-                              capture_output=True, text=True, cwd=os.getcwd())
+                            capture_output=True, text=True, cwd=os.getcwd())
         if result.returncode != 0:
             logger.error(f"Git push failed: {result.stderr}")
             return False
         
-        logger.info(f"✅ Successfully auto-committed and pushed backup for Day {current_day}")
-        print(f"✅ Git auto-backup completed for Day {current_day}")
+        logger.info(f"✅ Successfully auto-committed and pushed backup for Day {shared.current_day}")
+        print(f"✅ Git auto-backup completed for Day {shared.current_day}")
         return True
         
     except Exception as e:
         logger.error(f"Git auto-backup failed: {e}")
         return False
-
 
 def message_has_media(message):
     return (message.attachments and any(
@@ -100,7 +102,7 @@ async def on_message(message):
     if message.author == bot.user:
         return
     
-    if message.channel.id not in allowed_channels:
+    if message.channel.id not in shared.allowed_channels:
         return
 
     if message.author.id == 374012168028291073 and message.content.startswith("🔥"):
@@ -122,11 +124,11 @@ async def on_message(message):
         
         # Handle badge uploads (specific role required)
         if "#badge" in content_lower:
-            if await handle_badge_upload(message):
+            if await shared.handle_badge_upload(message):
                 return  # Badge handled, don't process as regular art
         
         # Auto-track users who have the "daily" Discord role (if not already tracked)
-        if message.author.id not in tracked_users:
+        if message.author.id not in shared.tracked_users:
             # Check if user has the "Dailies Challenger" role
             member = message.guild.get_member(message.author.id)
             print(member.roles)
@@ -134,7 +136,7 @@ async def on_message(message):
                 # Automatically add user to tracking if they have the "Dailies Challenger" role
                 user_nickname = member.nick if member and member.nick else message.author.name
                 
-                tracked_users[message.author.id] = {
+                shared.tracked_users[message.author.id] = {
                     'username': message.author.name,
                     'user_nickname': user_nickname,
                     'sent_image': False,
@@ -155,8 +157,8 @@ async def on_message(message):
                 logger.info(f"Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
                 await message.channel.send(f"🎨 Welcome to daily art tracking, {message.author.display_name}! You've been automatically added due to your 'Dailies Challenger' role.")
 
-        if message.author.id in tracked_users:
-            user_data = tracked_users[message.author.id]
+        if message.author.id in shared.tracked_users:
+            user_data = shared.tracked_users[message.author.id]
 
             if "#daily" in content_lower:
                 if user_data['sent_image']:
@@ -226,13 +228,12 @@ async def on_message(message):
 # Edit the seconds 
 @tasks.loop(minutes=30)  # Save data every 8 hours
 async def send_daily_art_message():
-    global current_day, season, season_theme, season_days, last_daily_message_day
 
-    users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
-    users_sent = [u for u in tracked_users.values() if u['sent_image']]
-    print(season_theme)
-    logger.debug(f"Current season theme: {season_theme}")
-    message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
+    users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
+    users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
+    print(shared.season_theme)
+    logger.debug(f"Current season theme: {shared.season_theme}")
+    message = f"## **Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
     message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
     message += "\n**⛓️ Jailed:**\n"
     message += "🧱"*20 + "\n"
@@ -263,24 +264,24 @@ async def send_daily_art_message():
     
     # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
     # 30-minute window centered around 12:30 AM EST - ONLY ADVANCE DAY (no message sent)
-    if now.hour == 4 and 15 <= now.minute < 45 and last_daily_message_day != current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
-        last_daily_message_day = current_day
+    if now.hour == 4 and 15 <= now.minute < 45 and last_daily_message_day != shared.current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+        last_daily_message_day = shared.current_day
         
         # Get channel for sending message
-        channel = bot.get_channel(announcement_channel)
+        channel = bot.get_channel(shared.announcement_channel)
         
         # Only send daily message and advance day if there are tracked users
-        if tracked_users:
+        if shared.tracked_users:
             if channel:
                 print("Sending daily art message - 12:30 AM EST...")
                 logger.info("Sending daily art message - 12:30 AM EST...")
                 await channel.send(message)
             else:
-                logger.error(f"Could not send daily message - announcement channel {announcement_channel} not found")
+                logger.error(f"Could not send daily message - announcement channel {shared.announcement_channel} not found")
 
-            print(f"Day {current_day} has ended!")
-            logger.info(f"Day {current_day} has ended!")
-            current_day += 1
+            print(f"Day {shared.current_day} has ended!")
+            logger.info(f"Day {shared.current_day} has ended!")
+            shared.current_day += 1
             
             # Auto-commit backup.json after day advancement
             await auto_commit_backup()
@@ -288,21 +289,21 @@ async def send_daily_art_message():
         else:
             print("No tracked users - pausing season progression")
             logger.info("No tracked users - season paused until users are added")
-        if current_day == season_days + 1:
+        if shared.current_day == shared.season_days + 1:
             badge_pathway = f"badges/UWVAC_Badges_Season{season}.png"
             if os.path.exists(badge_pathway):
                 badge = discord.File(badge_pathway)
             results_message = f"# 🎉 **Season {season} has ended!** 🎉\n"
             results_message += f"🏆 **Congratulations to the all inmates!** 🏆\n"
             
-            tracked_users_list = list(tracked_users.values())
-            tracked_users_list.sort(key=lambda x: (-x['parole_days'], x['missing_days'], -x['revival']))
+            shared.tracked_users_list = list(shared.tracked_users.values())
+            shared.tracked_users_list.sort(key=lambda x: (-x['parole_days'], x['missing_days'], -x['revival']))
             
             rank = 1
             prev_user = None
             grouped_users = [] 
 
-            for index, user in enumerate(tracked_users_list):
+            for index, user in enumerate(shared.tracked_users_list):
                 # Check if this user has the same stats as the previous user
                 if prev_user and (
                     prev_user['parole_days'] == user['parole_days'] and
@@ -327,13 +328,13 @@ async def send_daily_art_message():
             results_message += f"\n## **Funny Achievements:**\n"
             
             # Check if we have any users to avoid crashes
-            if not tracked_users:
+            if not shared.tracked_users:
                 results_message += "No tracked users for achievements.\n"
             else:
-                max_revival = max(user['revival'] for user in tracked_users.values())
-                highest_revival_users = [user['user_nickname'] for user in tracked_users.values() if user['revival'] == max_revival]
-                max_buffer = max(user['buffer'] for user in tracked_users.values())
-                highest_buffer_users = [user['user_nickname'] for user in tracked_users.values() if user['buffer'] == max_buffer]
+                max_revival = max(user['revival'] for user in shared.tracked_users.values())
+                highest_revival_users = [user['user_nickname'] for user in shared.tracked_users.values() if user['revival'] == max_revival]
+                max_buffer = max(user['buffer'] for user in shared.tracked_users.values())
+                highest_buffer_users = [user['user_nickname'] for user in shared.tracked_users.values() if user['buffer'] == max_buffer]
                 
                 # Only show achievements if someone actually has meaningful stats
                 if max_buffer > 0:
@@ -367,11 +368,11 @@ async def send_daily_art_message():
             results_message += f"🎨 **The {season_theme} badge** 🎨\n"
             
             # Get channel for season end messages
-            channel = bot.get_channel(announcement_channel)
+            channel = bot.get_channel(shared.announcement_channel)
             if channel:
                 await channel.send(results_message, file=badge)
             else:
-                logger.error(f"Could not send season end results - announcement channel {announcement_channel} not found")
+                logger.error(f"Could not send season end results - announcement channel {shared.announcement_channel} not found")
 
             # Reset all user stats for the new season
             reset_user_stats()
@@ -384,7 +385,7 @@ async def send_daily_art_message():
             except Exception as e:
                 logger.warning(f"Could not clear duels for new season: {e}")
 
-            current_day = 1
+            shared.current_day = 1
             season += 1
             season_theme = f"{season_theme}"
             season_message = f"# 🎉 **Season {season} begins tomorrow!** 🎉\n"
@@ -393,9 +394,9 @@ async def send_daily_art_message():
             if channel:
                 await channel.send(season_message)
             else:
-                logger.error(f"Could not send new season message - announcement channel {announcement_channel} not found")
+                logger.error(f"Could not send new season message - announcement channel {shared.announcement_channel} not found")
 
-        for user in tracked_users.values():
+        for user in shared.tracked_users.values():
             # Initialize consecutive_missed_days if it doesn't exist (for existing users)
             if 'consecutive_missed_days' not in user:
                 user['consecutive_missed_days'] = 0
@@ -454,19 +455,19 @@ async def send_daily_art_message():
         
 
 
-@tasks.loop(hours=time_deploy)  # Save data every 8 hours
+@tasks.loop(hours=shared.time_deploy)  # Save data every 8 hours
 async def save_data_task():
     data = {
-        "current_day": current_day,
-        "season": season,
-        "tracked_users": tracked_users,
-        "announcement_channel": announcement_channel,
-        "allowed_channels": allowed_channels,
+        "current_day": shared.current_day,
+        "season": shared.season,
+        "tracked_users": shared.tracked_users,
+        "announcement_channel": shared.announcement_channel,
+        "allowed_channels": shared.allowed_channels,
         "duel": get_duel_data(),
         "chain": get_chain_data()
     }
     
-    with open(saved_data, "w") as f:
+    with open(shared.SAVED_DATA_PATH, "w") as f:
         json.dump(data, f, indent=4)
     
     print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -475,7 +476,6 @@ async def save_data_task():
 
 @tasks.loop(minutes=30)  # Check every 30 minutes to catch both warning times
 async def ping_jailed_users():
-    global last_warning_1_day, last_warning_2_day
     
     now = datetime.now()
     # Add detailed time logging for debugging
@@ -488,16 +488,16 @@ async def ping_jailed_users():
     # For now, using UTC-4 (EDT) - 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
     
     # Send daily art message WITH warnings at 10-10:30 PM EST and 11-11:30 PM EST
-    if now.hour == 2 and now.minute < 30 and last_warning_1_day != current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
+    if now.hour == 2 and now.minute < 30 and last_warning_1_day != shared.current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
         print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
-        last_warning_1_day = current_day
+        last_warning_1_day = shared.current_day
         
         # Build the daily art message inline
-        users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
-        users_sent = [u for u in tracked_users.values() if u['sent_image']]
+        users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
+        users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
         
-        message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
+        message = f"## **Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
         message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
         message += "\n**⛓️ Jailed:**\n"
         message += "🧱"*20 + "\n"
@@ -530,7 +530,7 @@ async def ping_jailed_users():
         
         # Find users who need to submit
         ping_users = []
-        for user_id, user in tracked_users.items():
+        for user_id, user in shared.tracked_users.items():
             if user['ping'] and not user['sent_image']:
                 member = bot.get_user(user_id)
                 if member:
@@ -542,16 +542,16 @@ async def ping_jailed_users():
         else:
             message += "**Great job everyone! All tracked users have submitted their art today! 🎉**"
         
-    elif now.hour == 3 and now.minute < 30 and last_warning_2_day != current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
+    elif now.hour == 3 and now.minute < 30 and last_warning_2_day != shared.current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
         print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
-        last_warning_2_day = current_day
+        last_warning_2_day = shared.current_day
         
         # Build the daily art message inline
-        users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
-        users_sent = [u for u in tracked_users.values() if u['sent_image']]
+        users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
+        users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
         
-        message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
+        message = f"## **Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
         message += f"**🔄 On parole:** \n{', '.join([u['user_nickname'] for u in users_sent])}\n"
         message += "\n**⛓️ Jailed:**\n"
         message += "🧱"*20 + "\n"
@@ -584,7 +584,7 @@ async def ping_jailed_users():
         
         # Find users who need to submit
         ping_users = []
-        for user_id, user in tracked_users.items():
+        for user_id, user in shared.tracked_users.items():
             if user['ping'] and not user['sent_image']:
                 member = bot.get_user(user_id)
                 if member:
@@ -597,8 +597,8 @@ async def ping_jailed_users():
             message += "**Excellent! All tracked users are safe for today! 🎨✅**"
     
     if message:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
-        channel = bot.get_channel(announcement_channel)
+        channel = bot.get_channel(shared.announcement_channel)
         if channel:
             await channel.send(message)
         else:
-            logger.error(f"Could not send warning message - announcement channel {announcement_channel} not found")
+            logger.error(f"Could not send warning message - announcement channel {shared.announcement_channel} not found")

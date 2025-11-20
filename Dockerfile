@@ -23,4 +23,4 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . .
 RUN mkdir -p /app/badges
 
-CMD ["python", "bot.py"]
+CMD ["python", "py/bot.py"]
