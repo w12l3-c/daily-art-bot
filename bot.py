@@ -38,7 +38,7 @@ intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
-allowed_channels = [1281049819342831636]
+allowed_channels = [1281049819342831636, 1440845080742199426]
 announcement_channel = 1281049819342831636  # Default announcement channel
 
 tracked_users = {}
@@ -293,6 +293,24 @@ async def on_ready():
     ping_jailed_users.start()
     cleanup_duels.start()
 
+def message_has_media(message):
+    return (message.attachments and any(
+            attachment.content_type.startswith("image/") or 
+            attachment.content_type.startswith("video/mp4") or
+            attachment.filename.lower().endswith(('.mp4', '.mov'))
+            for attachment in message.attachments
+        )) or (message.embeds and any(
+            embed.type in ['image', 'video'] or 
+            (embed.image and embed.image.url) or 
+            (embed.video and embed.video.url)
+            for embed in message.embeds
+        )) or (message.attachments and any(
+            attachment.content_type.startswith("image/") or 
+            attachment.content_type.startswith("video/mp4") or
+            attachment.filename.lower().endswith(('.mp4', '.mov'))
+            for attachment in message.attachments
+        ))
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -307,25 +325,13 @@ async def on_message(message):
         nickname = member.nick if member and member.nick else member.name
         await message.channel.send(f"Hi! {nickname} <3")
 
-    # Check if the message has an image/video attachment or is a forwarded message with media
-    has_media = False
-    if message.attachments:
-        # Check for images and mp4 videos
-        has_media = any(
-            attachment.content_type.startswith("image/") or 
-            attachment.content_type.startswith("video/mp4") or
-            attachment.filename.lower().endswith(('.mp4', '.mov'))
-            for attachment in message.attachments
-        )
-    
-    # Also check if it's a forwarded message with embeds that might contain media
-    if not has_media and message.embeds:
-        has_media = any(
-            embed.type in ['image', 'video'] or 
-            (embed.image and embed.image.url) or 
-            (embed.video and embed.video.url)
-            for embed in message.embeds
-        )
+    # Check if the message has an image/video attachment, is a forwarded message with media, or is a reply to a message that has media
+    has_media = message_has_media(message) or (
+        message.reference and
+        isinstance(message.reference.resolved, discord.Message) and
+        message.reference.resolved.author == message.author and
+        message_has_media(message.reference.resolved)
+    )
     
     if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
