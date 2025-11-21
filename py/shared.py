@@ -3,12 +3,12 @@ shared.py
 This file contains all global constants/variables/functions used by other scripts
 """
 
-import discord # type: ignore
-from discord.ext import commands # type: ignore
+import discord
+from discord.ext import commands
 from datetime import datetime
 import os
-import aiohttp # type: ignore
-from dotenv import load_dotenv  # type: ignore
+import aiohttp
+from dotenv import load_dotenv 
 import shutil
 import logging
 from pathlib import Path
@@ -52,8 +52,10 @@ wcw_announcement_channel = 1419486211948413098
 
 wcw_tracked_users = {}
 WCW_SAVED_DATA_PATH = PROJECT_ROOT_PATH / "wcw.json"
+wcw_current_week = 10
+wcw_tracked_users = {}
 
-
+WCW_WARDENS = [516344918566764594, 414612223273598986]
 
 # Configurable mod role name (case-insensitive)
 MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, comparison is case-insensitive

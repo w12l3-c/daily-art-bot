@@ -3,8 +3,8 @@ commands.py
 This file contains implementations of Discord command functions
 """
 
-import discord # type: ignore
-from discord import app_commands # type: ignore
+import discord
+from discord import app_commands
 import os
 from daily import reset_user_stats, build_reminder_message
 import shared
@@ -733,21 +733,6 @@ async def set_season_number(interaction: discord.Interaction, season_num: int):
     await interaction.response.send_message(f"✅ Season number changed from **{old_season}** to **{season}**", ephemeral=True)
     logger.info(f"Season number changed from {old_season} to {season} by {interaction.user.name}")
 
-@bot.tree.command(name="debug", description="Debugging")
-@app_commands.describe(param="param")
-async def debug(interaction: discord.Interaction, param: int):
-    if not shared.has_admin_or_mod_permissions(interaction):
-        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
-        return
-
-    message = build_reminder_message(param)
-    logger.info(message)
-    logger.info(f"this message is {len(message)} characters")
-    channel = bot.get_channel(1440845080742199426)
-    if channel:
-        await channel.send(message)
-
-
 @bot.tree.command(name="ping", description="Decide if you want the bot to ping you if you haven't submitted a daily before the deadline")
 @app_commands.describe(value="If the bot should ping you")
 async def debug(interaction: discord.Interaction, value: bool):
@@ -765,3 +750,17 @@ async def debug(interaction: discord.Interaction, value: bool):
     except ValueError:
         await interaction.response.send_message("⚠️ Invalid value type.")
         logger.error(f"Invalid value type when editing user {user.name}'s {"ping"} to {value}")
+
+@bot.tree.command(name="debug", description="Debugging")
+@app_commands.describe(param="param")
+async def debug(interaction: discord.Interaction, param: int):
+    if not shared.has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+
+    message = build_reminder_message(param)
+    logger.info(message)
+    logger.info(f"this message is {len(message)} characters")
+    channel = bot.get_channel(1440845080742199426)
+    if channel:
+        await channel.send(message)

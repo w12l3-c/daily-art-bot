@@ -3,7 +3,7 @@ bot.py
 This file contains the bot instance, and acts as the entry point for the bot
 """
 
-from discord.ext import tasks # type: ignore
+from discord.ext import tasks
 import json
 import asyncio
 from duel import register_duel_commands, set_tracked_users_reference, cleanup_expired_duels, load_duel_data
@@ -12,10 +12,12 @@ from chain import register_chain_commands, set_tracked_users_reference as set_ch
 import shared
 from shared import bot, logger
 import daily
-import  daily_commands
+import daily_commands
+import wcw
 
 def load_data():
     try:
+        # load daily art json
         with open(shared.SAVED_DATA_PATH, "r") as f:
             data = json.load(f)
             shared.current_day = data.get("current_day", shared.current_day)
@@ -59,6 +61,48 @@ def load_data():
         shared.announcement_channel = shared.allowed_channels[0] if shared.allowed_channels else None
         load_duel_data(None)  # Initialize empty duel data
         load_chain_data(None)  # Initialize empty chain data
+
+    try:
+        # load wcw json
+        with open(shared.WCW_SAVED_DATA_PATH, "r") as f:
+            data = json.load(f)
+            shared.wcw_current_week = data.get("current_week", shared.wcw_current_ween)
+            loaded_users = data.get("tracked_users", {})
+            shared.wcw_announcement_channel = data.get("announcement_channel", shared.wcw_allowed_channels[0] if shared.wcw_allowed_channels else None)
+            
+            # Load allowed_channels if it exists, otherwise keep the current one
+            loaded_allowed_channels = data.get("allowed_channels", shared.wcw_allowed_channels)
+            if loaded_allowed_channels:
+                shared.wcw_allowed_channels = loaded_allowed_channels
+            
+            # Convert string keys back to integers (JSON stores dict keys as strings)
+            shared.wcw_tracked_users = {}
+            for user_id_str, user_data in loaded_users.items():
+                try:
+                    user_id_int = int(user_id_str)
+                    shared.wcw_tracked_users[user_id_int] = user_data
+                except ValueError:
+                    logger.warning(f"Could not convert user ID '{user_id_str}' to integer")
+            
+            # Load duel data if it exists
+            duel_data = data.get("duel", None)
+            load_duel_data(duel_data)
+            
+            # Load chain data if it exists
+            chain_data = data.get("chain", None)
+            load_chain_data(chain_data)
+                    
+            print(f"✅ WCW data loaded successfully! (Week {shared.wcw_current_day})")
+            logger.info(f"WCW data loaded successfully! (Week {shared.wcw_current_day})")
+            logger.info(f"Loaded {len(shared.wcw_tracked_users)} users with IDs: {list(shared.wcw_tracked_users.keys())}")
+            logger.info(f"WCW announcement channel set to: {shared.wcw_announcement_channel}")
+            logger.info(f"WCW allowed channels: {shared.wcw_allowed_channels}")
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("⚠️ No save file found. Starting fresh.")
+        logger.warning("No save file found. Starting fresh.")
+        shared.wcw_current_week = 10
+        shared.wcw_tracked_users = {}
+        shared.wcw_announcement_channel = shared.wcw_allowed_channels[0] if shared.wcw_allowed_channels else None
 
 @bot.event
 async def on_ready():
@@ -114,8 +158,13 @@ async def on_message(message):
     if message.author == bot.user:
         return
     
+    if message.channel.id in shared.allowed_channels:
+        await daily.on_message_daily(message)
+    elif message.channel.id in shared.wcw_allowed_channels:
+        await wcw.on_message_daily(message)
     
-
+    # Process other commands
+    await bot.process_commands(message)
 
 @tasks.loop(hours=shared.time_deploy)  # Check every hour for expired duels
 async def cleanup_duels():

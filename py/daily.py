@@ -2,12 +2,13 @@
 daily.py
 This file contains functions related to the daily art tracking aspect of the bot
 """
-import discord # type: ignore
-from discord.ext import tasks  # type: ignore
+import discord
+from discord.ext import tasks
 from datetime import datetime
 import os
 import json
 import subprocess
+import random
 from duel import update_duel_progress, get_duel_rankings, get_duel_data
 from chain import process_chain_submission, get_chain_data
 
@@ -97,14 +98,7 @@ def message_has_media(message):
             for attachment in message.attachments
         ))
 
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-    
-    if message.channel.id not in shared.allowed_channels:
-        return
-
+async def on_message_daily(message):
     if message.author.id == 374012168028291073 and message.content.startswith("🔥"):
         guild = message.guild
         member = guild.get_member(message.author.id)
@@ -118,10 +112,12 @@ async def on_message(message):
         message.reference.resolved.author == message.author and
         message_has_media(message.reference.resolved)
     )
+
+    logger.info(f"has media: {has_media}")
     
     if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
-        
+
         # Handle badge uploads (specific role required)
         if "#badge" in content_lower:
             if await shared.handle_badge_upload(message):
@@ -159,20 +155,30 @@ async def on_message(message):
 
         if message.author.id in shared.tracked_users:
             user_data = shared.tracked_users[message.author.id]
-
             if "#daily" in content_lower:
+
+                # There's a 1/10 chance that Zak will get yelled at whenever submitting a daily
+                random.seed()
+                should_yell_at_zak = message.author.id == 472930608734142464 and random.random() * 10 < 1
+
                 if user_data['sent_image']:
                     # User already submitted daily art, count this as buffer
                     user_data['buffer'] = user_data.get('buffer', 0) + 1
                     print(f"🛑 {message.author.name} submitted additional #daily art as buffer.")
                     logger.info(f"{message.author.name} submitted additional #daily art as buffer.")
-                    await message.channel.send(f"📌 {message.author.display_name}, you've already submitted today's art! This has been recorded as buffer art.")
+                    if should_yell_at_zak:
+                        await message.channel.send(f"<@{message.author.id}> LOCK IN")
+                    else:
+                        await message.channel.send(f"📌 {message.author.display_name}, you've already submitted today's art! This has been recorded as buffer art.")
                 else:
                     # First daily submission
                     user_data['sent_image'] = True  # Mark as official art submission
                     print(f"✅ {message.author.name} submitted official art.")
                     logger.info(f"{message.author.name} submitted official art.")
-                    await message.channel.send(f"🎨 {message.author.display_name}, your art has been recorded for today!")
+                    if should_yell_at_zak:
+                        await message.channel.send(f"<@{message.author.id}> LOCK IN")
+                    else:
+                        await message.channel.send(f"🎨 {message.author.display_name}, your art has been recorded for today!")
                 
                 # Update duel progress for this user (regardless of buffer or daily)
                 updated_duels = update_duel_progress(message.author.id, datetime.now())
@@ -209,19 +215,12 @@ async def on_message(message):
                     updated_duels = update_duel_progress(message.author.id, datetime.now())
                     if updated_duels:
                         logger.info(f"Updated {len(updated_duels)} duels for {message.author.name} (chain submission)")
-                else:
-                    # If chain processing failed and user didn't tag it as anything else, show the regular untagged message
-                    if user_data['ping']:
-                        await message.channel.send(f"⚠️ {message.author.display_name}, please tag your submission with `#daily` if it's an official art entry.")
 
             else:
                 print(f"📸 {message.author.name} uploaded an image but didn't tag it as art.")
                 logger.info(f"{message.author.name} uploaded an image but didn't tag it as art.")
-                if user_data['ping']:
-                    await message.channel.send(f"⚠️ {message.author.display_name}, please tag your submission with `#daily` if it's an official art entry.")
 
-    # Process other commands
-    await bot.process_commands(message)
+    
 
 
 
@@ -237,8 +236,8 @@ async def send_daily_art_message():
     
     # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
     # 30-minute window centered around 12:30 AM EST - ONLY ADVANCE DAY (no message sent)
-    if now.hour == 4 and 15 <= now.minute < 45 and last_daily_message_day != shared.current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
-        last_daily_message_day = shared.current_day
+    if now.hour == 4 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+        shared.last_daily_message_day = shared.current_day
         
         # Get channel for sending message
         channel = bot.get_channel(shared.announcement_channel)
@@ -476,7 +475,7 @@ def build_reminder_message(num):
         elif i != 0:
             message += "\n"
         message += f"{format_username(user['user_nickname'])}"
-            
+    
     message += "\n\n**⛓️ Jailed:**\n"
     # message += "🧱"*20 + "\n"
     
