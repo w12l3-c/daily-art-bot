@@ -8,7 +8,7 @@ from discord.ext import commands
 from datetime import datetime
 import os
 import aiohttp
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 import shutil
 import logging
 from pathlib import Path
@@ -22,6 +22,9 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+PROJECT_ROOT_PATH = Path(__file__).resolve().parent.parent
+
+# Daily art tracking values
 allowed_channels = [1281049819342831636, 1440845080742199426]
 announcement_channel = 1281049819342831636  # Default announcement channel
 
@@ -31,7 +34,6 @@ season = 1
 season_theme = "Testing"
 season_days = 50
 
-PROJECT_ROOT_PATH = Path(__file__).resolve().parent.parent
 SAVED_DATA_PATH = PROJECT_ROOT_PATH / "backup.json"
 BADGES_PATH = PROJECT_ROOT_PATH / "badges"
 
@@ -43,6 +45,17 @@ last_warning_2_day = -1
 
 time_debug = 30  # seconds
 time_deploy = 1 # hours
+
+# WCW tracking values
+wcw_allowed_channels = [1419486211948413098, 1440845080742199426]
+wcw_announcement_channel = 1419486211948413098
+
+wcw_tracked_users = {}
+WCW_SAVED_DATA_PATH = PROJECT_ROOT_PATH / "wcw.json"
+wcw_current_week = 10
+wcw_tracked_users = {}
+
+WCW_WARDENS = [516344918566764594, 414612223273598986]
 
 # Configurable mod role name (case-insensitive)
 MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, comparison is case-insensitive
