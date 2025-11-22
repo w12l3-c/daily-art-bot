@@ -764,3 +764,41 @@ async def debug(interaction: discord.Interaction, param: int):
     channel = bot.get_channel(1440845080742199426)
     if channel:
         await channel.send(message)
+
+@bot.tree.command(name="git_backup", description="Manually trigger git backup commit and push (Admin only).")
+async def git_backup(interaction: discord.Interaction):
+    # Check if user has admin permissions or mod role
+    if not shared.has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+    
+    # Defer the response since git operations might take a moment
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        from daily import auto_commit_backup
+        
+        # Attempt the backup
+        success = await auto_commit_backup()
+        
+        if success:
+            await interaction.followup.send(
+                f"✅ **Git backup completed successfully!**\n"
+                f"📦 Committed and pushed backup.json for Day {shared.current_day}",
+                ephemeral=True
+            )
+            logger.info(f"Admin {interaction.user.name} manually triggered git backup")
+        else:
+            await interaction.followup.send(
+                f"⚠️ **Git backup encountered an issue.**\n"
+                f"Check the logs for details. The backup may have been partially completed.",
+                ephemeral=True
+            )
+            logger.warning(f"Admin {interaction.user.name} triggered git backup but it failed")
+            
+    except Exception as e:
+        await interaction.followup.send(
+            f"❌ **Error during git backup:**\n```{str(e)}```",
+            ephemeral=True
+        )
+        logger.error(f"Error during manual git backup by {interaction.user.name}: {e}")
