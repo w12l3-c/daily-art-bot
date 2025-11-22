@@ -47,9 +47,12 @@ def reset_user_stats():
 async def auto_commit_backup():
     """Automatically commit and push backup.json to git"""
     try:
+        # Use PROJECT_ROOT_PATH  as git root
+        git_cwd = str(shared.PROJECT_ROOT_PATH)
+        
         # Add backup.json to git
         result = subprocess.run(['git', 'add', 'backup.json'], 
-                            capture_output=True, text=True, cwd=os.getcwd())
+                            capture_output=True, text=True, cwd=git_cwd)
         if result.returncode != 0:
             logger.warning(f"Git add failed: {result.stderr}")
             return False
@@ -59,7 +62,7 @@ async def auto_commit_backup():
         
         # Commit the changes
         result = subprocess.run(['git', 'commit', '-m', commit_message], 
-                            capture_output=True, text=True, cwd=os.getcwd())
+                            capture_output=True, text=True, cwd=git_cwd)
         if result.returncode != 0:
             # If commit fails (e.g., no changes), log but don't treat as error
             logger.info(f"Git commit: {result.stdout if result.stdout else result.stderr}")
@@ -67,7 +70,7 @@ async def auto_commit_backup():
         
         # Push to remote
         result = subprocess.run(['git', 'push', 'origin'], 
-                            capture_output=True, text=True, cwd=os.getcwd())
+                            capture_output=True, text=True, cwd=git_cwd)
         if result.returncode != 0:
             logger.error(f"Git push failed: {result.stderr}")
             return False
