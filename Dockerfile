@@ -1,13 +1,14 @@
 FROM python:3.12-slim-bookworm
 WORKDIR /app
 
-# Build tools + image libs for Pillow
+# Build tools + image libs for Pillow + git for auto-backup
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential python3-dev \
     zlib1g-dev libjpeg-dev libpng-dev libtiff5-dev \
     libfreetype6-dev liblcms2-dev libwebp-dev \
     libharfbuzz-dev libfribidi-dev libopenjp2-7-dev \
     libimagequant-dev libxcb1-dev \
+    git \
  && rm -rf /var/lib/apt/lists/*
 
 # Use piwheels if available, but also allow fallback to PyPI
