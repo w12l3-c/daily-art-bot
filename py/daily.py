@@ -460,7 +460,7 @@ def format_username(username):
     return username
 
 
-def build_reminder_message(num):        
+def build_reminder_message(num = 1):        
     # Build the daily art message inline
     USERS_PER_LINE = 4
 
@@ -557,7 +557,7 @@ async def ping_jailed_users():
     print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
     logger.info(f"ping_jailed_users check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
     
-    messages = []
+    message = ""
     
     # EST is UTC-5 in standard time (winter), UTC-4 in daylight time (summer)
     # For now, using UTC-4 (EDT) - 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
@@ -567,18 +567,17 @@ async def ping_jailed_users():
         print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         shared.last_warning_1_day = shared.current_day
-        messages = build_reminder_message()
+        message = build_reminder_message(1)
         
     elif now.hour == 3 and now.minute < 30 and shared.last_warning_2_day != shared.current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
         print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         shared.last_warning_2_day = shared.current_day
-        messages = build_reminder_message()
+        message = build_reminder_message(2)
     
-    if messages:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
+    if message:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
         channel = bot.get_channel(shared.announcement_channel)
         if channel:
-            for message in messages:
-                await channel.send(message)
+            await channel.send(message)
         else:
             logger.error(f"Could not send warning message - announcement channel {shared.announcement_channel} not found")
