@@ -98,8 +98,8 @@ def load_data():
             logger.info(f"WCW announcement channel set to: {shared.wcw_announcement_channel}")
             logger.info(f"WCW allowed channels: {shared.wcw_allowed_channels}")
     except (FileNotFoundError, json.JSONDecodeError):
-        print("⚠️ No save file found. Starting fresh.")
-        logger.warning("No save file found. Starting fresh.")
+        print("⚠️ No WCW save file found. Starting fresh.")
+        logger.warning("No WCW save file found. Starting fresh.")
         shared.wcw_current_week = 10
         shared.wcw_tracked_users = {}
         shared.wcw_announcement_channel = shared.wcw_allowed_channels[0] if shared.wcw_allowed_channels else None
