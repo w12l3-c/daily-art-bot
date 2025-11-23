@@ -60,6 +60,8 @@ WCW_WARDENS = [516344918566764594, 414612223273598986]
 # Configurable mod role name (case-insensitive)
 MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, comparison is case-insensitive
 
+# Configurable mod IDs
+MOD_IDS = [516344918566764594]
 
 # Configure logging
 logging.basicConfig(
@@ -86,8 +88,8 @@ def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
             if role.name.lower() in mod_roles_lower:
                 return True
             
-    # give ryann perms teehee
-    if interaction.user.id == 516344918566764594:
+    # Check for IDs
+    if interaction.user.id in MOD_IDS:
         return True
     
     return False

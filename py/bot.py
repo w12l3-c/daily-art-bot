@@ -161,7 +161,7 @@ async def on_message(message):
     if message.channel.id in shared.allowed_channels:
         await daily.on_message_daily(message)
     elif message.channel.id in shared.wcw_allowed_channels:
-        await wcw.on_message_daily(message)
+        await wcw.on_message_wcw(message)
     
     # Process other commands
     await bot.process_commands(message)
