@@ -254,7 +254,7 @@ async def join_tracking(interaction: discord.Interaction):
             'revival': 0,
             'buffer': 0,
             'probation': False,
-            'ping': True,  # Enable pings by default for self-joining users
+            'ping': False,  # Enable pings by default for self-joining users
             'duels_won': 0,
             'duels_lost': 0
         }
