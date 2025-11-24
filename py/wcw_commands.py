@@ -11,20 +11,20 @@ async def wcw_join(interaction: discord.Interaction, joining: bool, pretentious 
     if user.id in shared.wcw_tracked_users:
         if joining:
             if pretentious:
-                await interaction.channel.message("It seems you are already a member of Word Count Wednesday.")
+                await interaction.channel.message("It seems that you have already been cordially invited to our commune, that which we call \"Word Count Wednesday\" in colloquial terms.")
             else:
                 await interaction.channel.message("You're already part of WCW!")
         else:
             shared.wcw_tracked_users[user.id]['active'] = False
 
             if pretentious:
-                await interaction.channel.message("It is with deepest regrets that we part ways. May our paths cross again in the future.")
+                await interaction.channel.message("It is with a heavy weight in our hearts that we bid you adieu, O wonderous writer friend. May our paths intertwine again in the near future.")
             else:
                 await interaction.channel.message("Hope you've enjoyed your stay at WCW!")
     else:
         if not joining:
             if pretentious:
-                await interaction.channel.message("You were never a member of our association to begin with.")
+                await interaction.channel.message("Fie! Begone, false disciple! You never knew the true meaning of Word Count!")
             else:
                 await interaction.channel.message("You aren't part of WCW!")
         else:
@@ -39,7 +39,7 @@ async def wcw_join(interaction: discord.Interaction, joining: bool, pretentious 
                 'active': True,
             }
             if pretentious:
-                await interaction.channel.message("We welcome you warmly to our humble society.")
+                await interaction.channel.message("Prithee and well met, thou artful scribe. Thou shalt make merry with like-minded auteurs in the lobby we call \"Word Count Wednesday.\"")
             else:
                 await interaction.channel.message("Welcome to WCW!")
     return

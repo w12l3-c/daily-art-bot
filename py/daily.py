@@ -110,10 +110,17 @@ async def on_message_daily(message):
 
     # Check if the message has an image/video attachment, is a forwarded message with media, or is a reply to a message that has media
     has_media = message_has_media(message) or (
-        message.reference and
-        isinstance(message.reference.resolved, discord.Message) and
-        message.reference.resolved.author == message.author and
-        message_has_media(message.reference.resolved)
+        message.reference is not None and 
+        isinstance(message.reference.resolved, discord.Message) and (
+            (
+                message.reference.resolved.author == message.author and
+                message_has_media(message.reference.resolved)
+            ) or (
+                getattr(message.reference.resolved, "message_snapshots", None) is not None and
+                isinstance(message.reference.resolved.message_snapshots[0], discord.MessageSnapshot) and
+                message_has_media(message.reference.resolved.message_snapshots[0])
+            )
+        )
     )
 
     logger.info(f"has media: {has_media}")
