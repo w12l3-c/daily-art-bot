@@ -547,7 +547,7 @@ def build_reminder_message(num = 1):
             message += "**Great job everyone! All tracked users have submitted their art today! 🎉**"
         else:
             message += "**Make sure to submit your art if you haven't already!**"
-        message += "\n-# You can turn on ping reminders with the /ping command"
+        message += "\n-# You can toggle ping reminders with the /ping command"
     elif num == 2:
         if ping_users:
             message += f"Still need to submit: {' '.join(ping_users)}\n"
