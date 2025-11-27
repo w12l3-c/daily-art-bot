@@ -573,13 +573,13 @@ async def ping_jailed_users():
     # For now, using UTC-4 (EDT) - 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
     
     # Send daily art message WITH warnings at 10-10:30 PM EST and 11-11:30 PM EST
-    if now.hour == 2 and now.minute < 30 and shared.last_warning_1_day != shared.current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
+    if now.hour == 3 and now.minute < 30 and shared.last_warning_1_day != shared.current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
         print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         shared.last_warning_1_day = shared.current_day
         message = build_reminder_message(1)
         
-    elif now.hour == 3 and now.minute < 30 and shared.last_warning_2_day != shared.current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
+    elif now.hour == 4 and now.minute < 30 and shared.last_warning_2_day != shared.current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
         print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         shared.last_warning_2_day = shared.current_day
