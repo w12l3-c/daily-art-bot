@@ -13,6 +13,13 @@ if [ ! -f "backup.json" ]; then
     exit 0
 fi
 
+# Pull latest changes first to avoid conflicts
+echo "$(date): Pulling latest changes..."
+if ! git pull --rebase origin ; then
+    echo "$(date): Failed to pull latest changes"
+    exit 1
+fi
+
 # Add backup.json to git
 git add backup.json
 
