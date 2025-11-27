@@ -53,7 +53,7 @@
         "519023036783919104": {
             "username": "eolhc246",
             "user_nickname": "eolhcy [online-event] #1 ai fan",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 47,
             "deceased": false,
             "deceased_days": 8,
@@ -139,7 +139,7 @@
             "deceased_days": 16,
             "missing_days": 0,
             "revival": 10,
-            "buffer": 9,
+            "buffer": 10,
             "probation": false,
             "ping": false,
             "duels_won": 0,
@@ -261,7 +261,7 @@
         "559028502821601301": {
             "username": "sygviii",
             "user_nickname": "syg \ud83e\ude90 [support]",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 45,
             "deceased": true,
             "deceased_days": 10,
@@ -357,7 +357,7 @@
         "1205651323543097475": {
             "username": "milksnakez.",
             "user_nickname": "milksnakez.",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 36,
             "deceased": false,
             "deceased_days": 20,
@@ -597,7 +597,7 @@
         "456632972226068481": {
             "username": "emmm.jpg",
             "user_nickname": "emmm.jpg",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 48,
             "deceased": false,
             "deceased_days": 6,
@@ -661,7 +661,7 @@
         "580544728169447457": {
             "username": "lappalter",
             "user_nickname": "bird / elita",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 28,
             "deceased": false,
             "deceased_days": 24,
@@ -709,7 +709,7 @@
         "703281025379205191": {
             "username": "iwcj",
             "user_nickname": "iwcj",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 43,
             "deceased": false,
             "deceased_days": 4,
@@ -933,7 +933,7 @@
         "456605821107830784": {
             "username": "mrc.x",
             "user_nickname": "mrc.x",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 3,
             "deceased": false,
             "deceased_days": 0,
@@ -949,7 +949,7 @@
         "742551555240230963": {
             "username": "osafia",
             "user_nickname": "Orsafia",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 0,
             "deceased": true,
             "deceased_days": 1,
