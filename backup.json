@@ -8,7 +8,7 @@
             "sent_image": false,
             "parole_days": 44,
             "deceased": true,
-            "deceased_days": 10,
+            "deceased_days": 11,
             "missing_days": 7,
             "revival": 2,
             "buffer": 17,
