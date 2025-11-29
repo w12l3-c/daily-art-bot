@@ -13,12 +13,42 @@ if [ ! -f "backup.json" ]; then
     exit 0
 fi
 
+# Function to restore our specific stash
+restore_our_stash() {
+    if [ "$STASHED" = true ]; then
+        echo "$(date): Restoring our stashed changes..."
+        # Find and pop only our specific stash
+        STASH_ID=$(git stash list | grep "$STASH_NAME" | head -n1 | cut -d: -f1)
+        if [ -n "$STASH_ID" ]; then
+            if ! git stash pop "$STASH_ID"; then
+                echo "$(date): Warning: Could not restore our stashed changes, continuing anyway..."
+            fi
+        else
+            echo "$(date): Warning: Could not find our stash '$STASH_NAME', continuing anyway..."
+        fi
+    fi
+}
+
+# Stash any existing changes temporarily
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "$(date): Stashing existing changes..."
+    STASH_NAME="auto_backup_$(date +%s)"
+    git stash push -m "$STASH_NAME"
+    STASHED=true
+else
+    STASHED=false
+fi
+
 # Pull latest changes first to avoid conflicts
 echo "$(date): Pulling latest changes..."
-if ! git pull --rebase origin ; then
+if ! git pull origin main; then
     echo "$(date): Failed to pull latest changes"
+    restore_our_stash
     exit 1
 fi
+
+# Restore our specific stash if we created one
+restore_our_stash
 
 # Add backup.json to git
 git add backup.json
