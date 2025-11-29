@@ -116,9 +116,12 @@ async def on_message_daily(message):
                 message.reference.resolved.author == message.author and
                 message_has_media(message.reference.resolved)
             ) or (
-                getattr(message.reference.resolved, "message_snapshots", None) is not None and
-                isinstance(message.reference.resolved.message_snapshots[0], discord.MessageSnapshot) and
-                message_has_media(message.reference.resolved.message_snapshots[0])
+                (lambda snapshots: 
+                    snapshots is not None and 
+                    len(snapshots) > 0 and 
+                    isinstance(snapshots[0], discord.MessageSnapshot) and
+                    message_has_media(snapshots[0])
+                )(getattr(message.reference.resolved, "message_snapshots", None))
             )
         )
     )
