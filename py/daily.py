@@ -101,6 +101,9 @@ def message_has_media(message):
             for attachment in message.attachments
         ))
 
+
+
+
 async def on_message_daily(message):
     if message.author.id == 374012168028291073 and message.content.startswith("🔥"):
         guild = message.guild
@@ -109,22 +112,25 @@ async def on_message_daily(message):
         await message.channel.send(f"Hi! {nickname} <3")
 
     # Check if the message has an image/video attachment, is a forwarded message with media, or is a reply to a message that has media
-    has_media = message_has_media(message) or (
-        message.reference is not None and 
-        isinstance(message.reference.resolved, discord.Message) and (
-            (
-                message.reference.resolved.author == message.author and
-                message_has_media(message.reference.resolved)
-            ) or (
-                (lambda snapshots: 
-                    snapshots is not None and 
-                    len(snapshots) > 0 and 
-                    isinstance(snapshots[0], discord.MessageSnapshot) and
-                    message_has_media(snapshots[0])
-                )(getattr(message.reference.resolved, "message_snapshots", None))
-            )
-        )
-    )
+    has_media = message_has_media(message)
+    
+    # Check referenced messages (replies/forwards) safely 
+    if not has_media and message.reference is not None and isinstance(message.reference.resolved, discord.Message):
+        # Check if it's a self-reply with media
+        if message.reference.resolved.author == message.author and message_has_media(message.reference.resolved):
+            has_media = True
+        else:
+            # Check forwarded message snapshots safely
+            try:
+                snapshots = getattr(message.reference.resolved, "message_snapshots", None)
+                if snapshots:
+                    # Make a copy to avoid race conditions
+                    snapshots_copy = list(snapshots)
+                    if snapshots_copy and isinstance(snapshots_copy[0], discord.MessageSnapshot):
+                        has_media = message_has_media(snapshots_copy[0])
+            except (IndexError, AttributeError):
+                # If there's any error accessing snapshots, treat as no media
+                pass
 
     logger.info(f"has media: {has_media}")
     
