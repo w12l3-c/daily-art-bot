@@ -255,7 +255,7 @@ async def send_daily_art_message():
     
     # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
     # 30-minute window centered around 12:30 AM EST - ONLY ADVANCE DAY (no message sent)
-    if now.hour == 4 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+    if now.hour == 5 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
         shared.last_daily_message_day = shared.current_day
         
         # Get channel for sending message
