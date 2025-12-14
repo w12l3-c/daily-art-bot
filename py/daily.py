@@ -280,11 +280,12 @@ async def send_daily_art_message():
         else:
             print("No tracked users - pausing season progression")
             logger.info("No tracked users - season paused until users are added")
-        if shared.current_day == shared.season_days + 1:
-            badge_pathway = f"badges/UWVAC_Badges_Season{season}.png"
+        if shared.current_day >= shared.season_days + 1:
+            badge_pathway = f"badges/UWVAC_Badges_Season{shared.season}.png"
+            badge = None
             if os.path.exists(badge_pathway):
                 badge = discord.File(badge_pathway)
-            results_message = f"# 🎉 **Season {season} has ended!** 🎉\n"
+            results_message = f"# 🎉 **Season {shared.season} has ended!** 🎉\n"
             results_message += f"🏆 **Congratulations to the all inmates!** 🏆\n"
             
             shared.tracked_users_list = list(shared.tracked_users.values())
@@ -356,12 +357,15 @@ async def send_daily_art_message():
                         results_message += f"🎯 **Best Win Rate:** {best_win_rate['user_nickname']} ({best_win_rate['win_rate']:.1f}%)\n"
             
             results_message += f"\nCongratulations to all participants! See you all next season🎉\n"
-            results_message += f"🎨 **The {season_theme} badge** 🎨\n"
+            results_message += f"🎨 **The {shared.season_theme} badge** 🎨\n"
             
             # Get channel for season end messages
             channel = bot.get_channel(shared.announcement_channel)
             if channel:
-                await channel.send(results_message, file=badge)
+                if badge:
+                    await channel.send(results_message, file=badge)
+                else:
+                    await channel.send(results_message)
             else:
                 logger.error(f"Could not send season end results - announcement channel {shared.announcement_channel} not found")
 
@@ -377,9 +381,8 @@ async def send_daily_art_message():
                 logger.warning(f"Could not clear duels for new season: {e}")
 
             shared.current_day = 1
-            season += 1
-            season_theme = f"{season_theme}"
-            season_message = f"# 🎉 **Season {season} begins tomorrow!** 🎉\n"
+            shared.season += 1
+            season_message = f"# 🎉 **Season {shared.season} begins tomorrow!** 🎉\n"
             season_message += f"📊 **All user stats have been reset!** Fresh start for everyone! 🔄\n"
             
             if channel:
@@ -451,6 +454,8 @@ async def save_data_task():
     data = {
         "current_day": shared.current_day,
         "season": shared.season,
+        "season_days": shared.season_days,
+        "season_theme": shared.season_theme,
         "tracked_users": shared.tracked_users,
         "announcement_channel": shared.announcement_channel,
         "allowed_channels": shared.allowed_channels,
