@@ -22,6 +22,8 @@ def load_data():
             data = json.load(f)
             shared.current_day = data.get("current_day", shared.current_day)
             shared.season = data.get("season", shared.season)
+            shared.season_days = data.get("season_days", shared.season_days)
+            shared.season_theme = data.get("season_theme", shared.season_theme)
             loaded_users = data.get("tracked_users", {})
             shared.announcement_channel = data.get("announcement_channel", shared.allowed_channels[0] if shared.allowed_channels else None)
             

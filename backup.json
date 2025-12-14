@@ -1,6 +1,8 @@
 {
-    "current_day": 73,
+    "current_day": 51,
     "season": 4,
+    "season_days": 50,
+    "season_theme": "Firewal",
     "tracked_users": {
         "374012168028291073": {
             "username": "aikhao",
