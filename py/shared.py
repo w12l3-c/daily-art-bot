@@ -48,7 +48,7 @@ time_deploy = 1 # hours
 
 # WCW tracking values
 wcw_allowed_channels = [1419486211948413098, 1440845080742199426]
-wcw_announcement_channel = 1419486211948413098 
+wcw_announcement_channel = 1419486211948413098
 
 wcw_tracked_users = {}
 WCW_SAVED_DATA_PATH = PROJECT_ROOT_PATH / "wcw.json"
