@@ -9,6 +9,8 @@ import wcw
 from duel import cleanup_expired_duels
 
 
+forced_daily = False  
+
 @bot.tree.command(name="force_daily_rollover", description="[ADMIN] Manually trigger send_daily_art_message loop")
 async def force_daily_rollover(interaction: discord.Interaction):
     """Force the send_daily_art_message task to run immediately (admin/mod only)"""
@@ -21,10 +23,8 @@ async def force_daily_rollover(interaction: discord.Interaction):
     
     try:
         old_day = shared.current_day
-        # Mark that we've sent the message for this day to allow advancement
-        shared.last_daily_message_day = shared.current_day
+        forced_daily = True
         
-        # Call the actual task function
         await daily.send_daily_art_message()
         
         await interaction.followup.send(
@@ -35,6 +35,7 @@ async def force_daily_rollover(interaction: discord.Interaction):
         )
         
         logger.info(f"send_daily_art_message manually triggered by {interaction.user.name}")
+        forced_daily = False
     except Exception as e:
         logger.error(f"Error forcing daily rollover: {e}")
         await interaction.followup.send(f"❌ Error forcing rollover: {e}", ephemeral=True)

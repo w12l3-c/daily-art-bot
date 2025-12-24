@@ -9,6 +9,7 @@ import os
 import json
 import subprocess
 import random
+import forced_events
 from duel import update_duel_progress, get_duel_rankings, get_duel_data
 from chain import process_chain_submission, get_chain_data
 
@@ -212,7 +213,8 @@ async def send_daily_art_message():
     
     # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
     # 30-minute window centered around 12:30 AM EST - ONLY ADVANCE DAY (no message sent)
-    if now.hour == 5 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+    
+    if (now.hour == 5 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day) or forced_events.forced_daily:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
         shared.last_daily_message_day = shared.current_day
         
         # Get channel for sending message
@@ -424,6 +426,7 @@ async def save_data_task():
     print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
+
 def format_username(username):
     # escapes all special formatting characters
     username = (
@@ -462,13 +465,6 @@ def build_reminder_message(num = 1):
     jailed_users = [user for user in users_not_sent if not user['deceased']]
     deceased_users = [user for user in users_not_sent if user['deceased']]
     
-    # this code prints emojis
-    # for i, user in enumerate(jailed_users):
-    #     message += f"|| {user['user_nickname']} 💨{user['missing_days']}"
-    #     if user['buffer'] > 0:
-    #         message += f" (🛑{user['buffer']})"
-    #     message += " || "
-    
     for i, user in enumerate(jailed_users):
         if i % USERS_PER_LINE != 0:
             message += "  •  "
@@ -476,15 +472,7 @@ def build_reminder_message(num = 1):
             message += "\n"
         message += f"{format_username(user['user_nickname'])}"
 
-    # message += "\n" + "🧱"*20 + "\n"
     message += "\n\n**🪦 Deceased:**\n"
-    # message += "☁️"*20 + "\n"
-    
-    # for i, user in enumerate(deceased_users):
-    #     message += f"|| {user['user_nickname']}(💨{user['missing_days']} 💀{user['deceased_days']} 😇{user['revival']})"
-    #     if user['buffer'] > 0:
-    #         message += f" 🛑{user['buffer']}"
-    #     message += " || "
 
     for i, user in enumerate(deceased_users):
         if i % USERS_PER_LINE != 0:
@@ -492,11 +480,8 @@ def build_reminder_message(num = 1):
         message += f"{format_username(user['user_nickname'])}"
         if i % USERS_PER_LINE == USERS_PER_LINE - 1:
             message += "\n"
-
-    # message += "\n" + "☁️"*20
     
     if num == 1 or num == 2:
-        # Add warning message
         message += "\n\n🚨 **Daily Art Reminder!** 🚨\n"
         message += f"**You have roughly {3 - num} hour{"s" if num == 1 else ""} before the daily reset!** ⏰\n\n"
     
@@ -530,7 +515,6 @@ def build_reminder_message(num = 1):
 
 @tasks.loop(minutes=30)  # Check every 30 minutes to catch both warning times
 async def ping_jailed_users():
-    
     now = datetime.now()
     # Add detailed time logging for debugging
     print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
