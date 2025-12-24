@@ -235,34 +235,41 @@ async def remove_user(interaction: discord.Interaction, user: discord.User):
     else:
         await interaction.response.send_message("❌ User not found in tracking.")
 
-@bot.tree.command(name="join", description="Join the daily art tracking system yourself!")
+@bot.tree.command(name="join_daily", description="Join the daily art tracking system yourself!")
 async def join_tracking(interaction: discord.Interaction):
     user = interaction.user
     member = await interaction.guild.fetch_member(user.id)
     user_nickname = member.nick if member and member.nick else user.name
     
+    # Restore archived stats if the user left before
     if user.id not in shared.tracked_users:
-        shared.tracked_users[user.id] = {
-            'username': user.name,
-            'user_nickname': user_nickname,
-            'sent_image': False,
-            'parole_days': 0,
-            'deceased': False,
-            'deceased_days': 0,
-            'missing_days': 0,
-            'consecutive_missed_days': 0,
-            'revival': 0,
-            'buffer': 0,
-            'probation': False,
-            'ping': False,  # Enable pings by default for self-joining users
-            'duels_won': 0,
-            'duels_lost': 0
-        }
-        await interaction.response.send_message(f"🎨 Welcome to daily art tracking, {user_nickname}! You'll now be tracked for daily submissions and can participate in duels and chains. Good luck with your art journey!", ephemeral=True)
+        restored = False
+        if user.id in shared.archived_users:
+            shared.tracked_users[user.id] = shared.archived_users.pop(user.id)
+            restored = True
+        else:
+            shared.tracked_users[user.id] = {
+                'username': user.name,
+                'user_nickname': user_nickname,
+                'sent_image': False,
+                'parole_days': 0,
+                'deceased': False,
+                'deceased_days': 0,
+                'missing_days': 0,
+                'consecutive_missed_days': 0,
+                'revival': 0,
+                'buffer': 0,
+                'probation': False,
+                'ping': False,  # Enable pings by default for self-joining users
+                'duels_won': 0,
+                'duels_lost': 0
+            }
+        msg = "🎨 Welcome back! Your stats have been restored." if restored else "🎨 Welcome to daily art tracking!"
+        await interaction.response.send_message(f"{msg} {user_nickname}, you're now tracked for daily submissions and duels.", ephemeral=True)
     else:
         await interaction.response.send_message(f"⚠️ You're already being tracked in the daily art system!", ephemeral=True)
 
-@bot.tree.command(name="leave", description="Leave the daily art tracking system.")
+@bot.tree.command(name="leave_daily", description="Leave the daily art tracking system.")
 async def leave_tracking(interaction: discord.Interaction):
     user = interaction.user
     
@@ -280,7 +287,9 @@ async def leave_tracking(interaction: discord.Interaction):
             f"⚔️ Duels Lost: {user_data.get('duels_lost', 0)}\n\n"
             f"Thanks for participating in daily art tracking! You can rejoin anytime with `/join`."
         )
-        
+
+        # Archive stats instead of deleting so rejoin restores progress
+        shared.archived_users[user.id] = user_data
         del shared.tracked_users[user.id]
         await interaction.response.send_message(stats_message, ephemeral=True)
     else:
@@ -690,6 +699,7 @@ async def set_season_days(interaction: discord.Interaction, days: int):
     
     if days < shared.current_day:
         await interaction.response.send_message(f"⚠️ Warning: Setting season days ({days}) less than current day ({shared.current_day}). Season will end immediately!", ephemeral=True)
+        return
     
     old_days = shared.season_days
     shared.season_days = days
@@ -710,6 +720,7 @@ async def set_current_day(interaction: discord.Interaction, day: int):
     
     if day > shared.season_days:
         await interaction.response.send_message(f"⚠️ Warning: Setting current day ({day}) greater than season days ({shared.season_days}). Season will end immediately!", ephemeral=True)
+        return
     
     old_day = shared.current_day
     shared.current_day = day
@@ -765,40 +776,3 @@ async def debug(interaction: discord.Interaction, param: int):
     if channel:
         await channel.send(message)
 
-@bot.tree.command(name="git_backup", description="Manually trigger git backup commit and push (Admin only).")
-async def git_backup(interaction: discord.Interaction):
-    # Check if user has admin permissions or mod role
-    if not shared.has_admin_or_mod_permissions(interaction):
-        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
-        return
-    
-    # Defer the response since git operations might take a moment
-    await interaction.response.defer(ephemeral=True)
-    
-    try:
-        from daily import auto_commit_backup
-        
-        # Attempt the backup
-        success = await auto_commit_backup()
-        
-        if success:
-            await interaction.followup.send(
-                f"✅ **Git backup completed successfully!**\n"
-                f"📦 Committed and pushed backup.json for Day {shared.current_day}",
-                ephemeral=True
-            )
-            logger.info(f"Admin {interaction.user.name} manually triggered git backup")
-        else:
-            await interaction.followup.send(
-                f"⚠️ **Git backup encountered an issue.**\n"
-                f"Check the logs for details. The backup may have been partially completed.",
-                ephemeral=True
-            )
-            logger.warning(f"Admin {interaction.user.name} triggered git backup but it failed")
-            
-    except Exception as e:
-        await interaction.followup.send(
-            f"❌ **Error during git backup:**\n```{str(e)}```",
-            ephemeral=True
-        )
-        logger.error(f"Error during manual git backup by {interaction.user.name}: {e}")

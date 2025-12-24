@@ -44,44 +44,6 @@ def reset_user_stats():
     logger.info(f"Reset stats for {len(shared.tracked_users)} users for new season")
     print(f"✅ Reset stats for {len(shared.tracked_users)} users for new season")
 
-async def auto_commit_backup():
-    """Automatically commit and push backup.json to git"""
-    try:
-        # Use PROJECT_ROOT_PATH  as git root
-        git_cwd = str(shared.PROJECT_ROOT_PATH)
-        
-        # Add backup.json to git
-        result = subprocess.run(['git', 'add', 'backup.json'], 
-                            capture_output=True, text=True, cwd=git_cwd)
-        if result.returncode != 0:
-            logger.warning(f"Git add failed: {result.stderr}")
-            return False
-        
-        # Create commit message with current day and datetime
-        commit_message = f"Auto-backup: Day {shared.current_day} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S EST')}"
-        
-        # Commit the changes
-        result = subprocess.run(['git', 'commit', '-m', commit_message], 
-                            capture_output=True, text=True, cwd=git_cwd)
-        if result.returncode != 0:
-            # If commit fails (e.g., no changes), log but don't treat as error
-            logger.info(f"Git commit: {result.stdout if result.stdout else result.stderr}")
-            return True  # No changes is not an error
-        
-        # Push to remote
-        result = subprocess.run(['git', 'push', 'origin'], 
-                            capture_output=True, text=True, cwd=git_cwd)
-        if result.returncode != 0:
-            logger.error(f"Git push failed: {result.stderr}")
-            return False
-        
-        logger.info(f"✅ Successfully auto-committed and pushed backup for Day {shared.current_day}")
-        print(f"✅ Git auto-backup completed for Day {shared.current_day}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Git auto-backup failed: {e}")
-        return False
 
 def message_has_media(message):
     return (message.attachments and any(
@@ -100,8 +62,6 @@ def message_has_media(message):
             attachment.filename.lower().endswith(('.mp4', '.mov'))
             for attachment in message.attachments
         ))
-
-
 
 
 async def on_message_daily(message):
@@ -240,9 +200,6 @@ async def on_message_daily(message):
                 logger.info(f"{message.author.name} uploaded an image but didn't tag it as art.")
 
     
-
-
-
 # Edit the seconds 
 @tasks.loop(minutes=30)  # Save data every 8 hours
 async def send_daily_art_message():
@@ -273,9 +230,6 @@ async def send_daily_art_message():
             print(f"Day {shared.current_day} has ended!")
             logger.info(f"Day {shared.current_day} has ended!")
             shared.current_day += 1
-            
-            # Auto-commit backup.json after day advancement
-            await auto_commit_backup()
             
         else:
             print("No tracked users - pausing season progression")
@@ -457,6 +411,7 @@ async def save_data_task():
         "season_days": shared.season_days,
         "season_theme": shared.season_theme,
         "tracked_users": shared.tracked_users,
+        "archived_users": shared.archived_users,
         "announcement_channel": shared.announcement_channel,
         "allowed_channels": shared.allowed_channels,
         "duel": get_duel_data(),

@@ -14,6 +14,7 @@ from shared import bot, logger
 import daily
 import daily_commands
 import wcw
+import forced_events  # Import forced events to register debug commands
 
 def load_data():
     try:
@@ -25,6 +26,7 @@ def load_data():
             shared.season_days = data.get("season_days", shared.season_days)
             shared.season_theme = data.get("season_theme", shared.season_theme)
             loaded_users = data.get("tracked_users", {})
+            loaded_archived = data.get("archived_users", {})
             shared.announcement_channel = data.get("announcement_channel", shared.allowed_channels[0] if shared.allowed_channels else None)
             
             # Load allowed_channels if it exists, otherwise keep the current one
@@ -40,6 +42,14 @@ def load_data():
                     shared.tracked_users[user_id_int] = user_data
                 except ValueError:
                     logger.warning(f"Could not convert user ID '{user_id_str}' to integer")
+
+            shared.archived_users = {}
+            for user_id_str, user_data in loaded_archived.items():
+                try:
+                    user_id_int = int(user_id_str)
+                    shared.archived_users[user_id_int] = user_data
+                except ValueError:
+                    logger.warning(f"Could not convert archived user ID '{user_id_str}' to integer")
             
             # Load duel data if it exists
             duel_data = data.get("duel", None)

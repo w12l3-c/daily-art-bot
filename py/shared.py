@@ -29,6 +29,7 @@ allowed_channels = [1281049819342831636, 1440845080742199426]
 announcement_channel = 1281049819342831636  # Default announcement channel
 
 tracked_users = {}
+archived_users = {}  # users who opted out but keep their stats for later rejoin
 current_day = 45
 season = 1
 season_theme = "Testing"
