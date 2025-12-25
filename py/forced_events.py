@@ -13,6 +13,7 @@ forced_daily = False
 
 @bot.tree.command(name="force_daily_rollover", description="[ADMIN] Manually trigger send_daily_art_message loop")
 async def force_daily_rollover(interaction: discord.Interaction):
+    global forced_daily
     """Force the send_daily_art_message task to run immediately (admin/mod only)"""
     # Check permissions
     if not shared.has_admin_or_mod_permissions(interaction):
@@ -35,10 +36,12 @@ async def force_daily_rollover(interaction: discord.Interaction):
         )
         
         logger.info(f"send_daily_art_message manually triggered by {interaction.user.name}")
-        forced_daily = False
     except Exception as e:
         logger.error(f"Error forcing daily rollover: {e}")
         await interaction.followup.send(f"❌ Error forcing rollover: {e}", ephemeral=True)
+
+    if forced_daily:
+        forced_daily = False
 
 
 @bot.tree.command(name="force_ping_jailed", description="[ADMIN] Manually trigger ping_jailed_users loop")

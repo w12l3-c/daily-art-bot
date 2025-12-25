@@ -32,7 +32,7 @@ async def save_data_task():
 
 
 async def on_message_wcw(message):
-    if "#wcw" in message:
+    if "#wcw" in message.content.lower():
         if message.author.id not in shared.wcw_tracked_users:
             await message.channel.send(f"You are not tracked in WCW! Add yourself with /wcw_join")
             return

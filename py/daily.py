@@ -135,6 +135,16 @@ async def on_message_daily(message):
 
         if message.author.id in shared.tracked_users:
             user_data = shared.tracked_users[message.author.id]
+            
+            # Update user's nickname to current Discord nickname
+            member = message.guild.get_member(message.author.id)
+            if member:
+                current_nickname = member.nick if member.nick else message.author.name
+                if user_data['user_nickname'] != current_nickname:
+                    old_nickname = user_data['user_nickname']
+                    user_data['user_nickname'] = current_nickname
+                    logger.info(f"Updated nickname for {message.author.name}: '{old_nickname}' -> '{current_nickname}'")
+            
             if "#daily" in content_lower:
 
                 # There's a 1/10 chance that Zak will get yelled at whenever submitting a daily
@@ -213,8 +223,11 @@ async def send_daily_art_message():
     
     # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
     # 30-minute window centered around 12:30 AM EST - ONLY ADVANCE DAY (no message sent)
+    logger.info(forced_events.forced_daily)
+    logger.info(f"Daily reset condition: {(now.hour == 5 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day) or forced_events.forced_daily}")
     
     if (now.hour == 5 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day) or forced_events.forced_daily:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+        logger.info("Daily reset window reached - advancing day")
         shared.last_daily_message_day = shared.current_day
         
         # Get channel for sending message
@@ -241,9 +254,8 @@ async def send_daily_art_message():
             badge = None
             if os.path.exists(badge_pathway):
                 badge = discord.File(badge_pathway)
-            results_message = f"# 🎉 **Season {shared.season} has ended!** 🎉\n"
-            results_message += f"🏆 **Congratulations to the all inmates!** 🏆\n"
-            
+            results_message = f"# 🎉 **Season {shared.season} has ended!** 🎉 \n"
+            results_message += f"🏆 **Congratulations to the all inmates!** 🏆\n\n"
             shared.tracked_users_list = list(shared.tracked_users.values())
             shared.tracked_users_list.sort(key=lambda x: (-x['parole_days'], x['missing_days'], -x['revival']))
             
@@ -261,19 +273,19 @@ async def send_daily_art_message():
                     grouped_users.append(user['user_nickname']) 
                 else:
                     if grouped_users:
-                        print(f"**{rank}.** {', '.join(grouped_users)} | 🏆 Parole: {prev_user['parole_days']} | ⏳ Missing: {prev_user['missing_days']} | 😇 Revival: {prev_user['revival']}\n")
                         logger.info(f"Rank {rank}: {', '.join(grouped_users)} | Parole: {prev_user['parole_days']} | Missing: {prev_user['missing_days']} | Revival: {prev_user['revival']}")
-                        results_message += f"**{rank}.** {', '.join(grouped_users)} | 🏆 Parole: {prev_user['parole_days']} | ⏳ Missing: {prev_user['missing_days']} | 😇 Revival: {prev_user['revival']}\n"
+                        results_message += f"{rank}. **{', '.join(grouped_users)}**:     "
+                        results_message += f"🏆 Parole: {prev_user['parole_days']} | ⏳ Missing: {prev_user['missing_days']} | 😇 Revival: {prev_user['revival']}\n"
 
                     rank = index + 1 
                     grouped_users = [user['user_nickname']]
                 prev_user = user 
-                print(grouped_users)
                 logger.debug(f"Grouped users: {grouped_users}")
             if grouped_users:
-                results_message += f"**{rank}.** {', '.join(grouped_users)} | 🏆 Parole: {prev_user['parole_days']} | ⏳ Missing: {prev_user['missing_days']} | 😇 Revival: {prev_user['revival']}\n"
+                results_message += f"{rank}. **{', '.join(grouped_users)}**:    "  
+                results_message += f"🏆 Parole: {prev_user['parole_days']} | ⏳ Missing: {prev_user['missing_days']} | 😇 Revival: {prev_user['revival']}\n"
 
-            results_message += f"\n## **Funny Achievements:**\n"
+            results_message += f"\n**Funny Achievements:**\n"
             
             # Check if we have any users to avoid crashes
             if not shared.tracked_users:
@@ -297,7 +309,7 @@ async def send_daily_art_message():
             # Add duel rankings
             duel_rankings = get_duel_rankings()
             if duel_rankings:
-                results_message += f"\n## **⚔️ Duel Champions:**\n"
+                results_message += f"\n**⚔️ Duel Champions:**\n"
                 for i, duelist in enumerate(duel_rankings[:5], 1):  # Top 5 duelists
                     results_message += f"**{i}.** {duelist['user_nickname']} - {duelist['wins']}W/{duelist['losses']}L ({duelist['win_rate']:.1f}% win rate)\n"
                 
@@ -313,15 +325,61 @@ async def send_daily_art_message():
                         results_message += f"🎯 **Best Win Rate:** {best_win_rate['user_nickname']} ({best_win_rate['win_rate']:.1f}%)\n"
             
             results_message += f"\nCongratulations to all participants! See you all next season🎉\n"
-            results_message += f"🎨 **The {shared.season_theme} badge** 🎨\n"
             
             # Get channel for season end messages
             channel = bot.get_channel(shared.announcement_channel)
             if channel:
-                if badge:
-                    await channel.send(results_message, file=badge)
+                # Split message if it exceeds Discord's 2000 char limit (using 1900 to be safe)
+                MAX_LENGTH = 1900
+                ZERO_WIDTH_BREAK = "\n\u200b\n"  # hard reset for Discord markdown
+
+                # Split message if needed
+                if len(results_message) > MAX_LENGTH:
+                    lines = results_message.split('\n')
+                    chunks = []
+                    current_chunk = ""
+
+                    for line in lines:
+                        # +1 for newline
+                        if len(current_chunk) + len(line) + 1 > MAX_LENGTH:
+                            # Force a markdown reset at chunk boundary
+                            safe_chunk = current_chunk.rstrip() + ZERO_WIDTH_BREAK
+                            chunks.append(safe_chunk)
+                            current_chunk = line + "\n"
+                        else:
+                            current_chunk += line + "\n"
+
+                    if current_chunk.strip():
+                        chunks.append(current_chunk.rstrip())
+
+                    # Debug info (optional but useful)
+                    logger.info(f"Season results split into {len(chunks)} chunks")
+                    for i, c in enumerate(chunks, 1):
+                        logger.debug(f"Chunk {i} length: {len(c)}")
+
+                    # Send badge first if available, then send chunks separately
+                    if badge:
+                        await channel.send("🎉 **Season Badge** 🎉", file=badge)
+                        await asyncio.sleep(0.2)
+                    
+                    # Send all chunks without attachment
+                    import asyncio
+                    for i, chunk in enumerate(chunks):
+                        await asyncio.sleep(0.1)
+                        await channel.send(chunk)
+
                 else:
-                    await channel.send(results_message)
+                    # Message fits in one send
+                    if badge:
+                        await channel.send(results_message, file=badge)
+                    else:
+                        await channel.send(results_message)
+                
+                # Send badge message separately if we split the main message
+                if len(results_message) > MAX_LENGTH:
+                    await channel.send(f"🎨 **The {shared.season_theme} badge** 🎨")
+                else:
+                    await channel.send(f"🎨 **The {shared.season_theme} badge** 🎨")
             else:
                 logger.error(f"Could not send season end results - announcement channel {shared.announcement_channel} not found")
 
@@ -449,7 +507,7 @@ def build_reminder_message(num = 1):
     users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
     users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
     
-    message = f"## **Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
+    message = f"**Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
     message += f"**🔄 On parole:** \n"
     for i, user in enumerate(users_sent):
         if i % USERS_PER_LINE != 0:
@@ -483,7 +541,7 @@ def build_reminder_message(num = 1):
     
     if num == 1 or num == 2:
         message += "\n\n🚨 **Daily Art Reminder!** 🚨\n"
-        message += f"**You have roughly {3 - num} hour{"s" if num == 1 else ""} before the daily reset!** ⏰\n\n"
+        message += f"**You have roughly {3 - num} hour{'s' if num == 1 else ''} before the daily reset!** ⏰\n\n"
     
     # Find users who need to submit
     ping_users = []
