@@ -6,7 +6,7 @@
     "tracked_users": {
         "374012168028291073": {
             "username": "aikhao",
-            "user_nickname": "ai [manaiger] #1 eol fan",
+            "user_nickname": "hollai [manaiger] wife lover",
             "sent_image": false,
             "parole_days": 44,
             "deceased": true,
@@ -22,8 +22,8 @@
         },
         "419488572794470415": {
             "username": "leecheejelly",
-            "user_nickname": "Leech \ud83c\udf61 ($5!!!)",
-            "sent_image": false,
+            "user_nickname": "LaiSerres",
+            "sent_image": true,
             "parole_days": 64,
             "deceased": false,
             "deceased_days": 2,
@@ -134,7 +134,7 @@
         },
         "414612223273598986": {
             "username": "deceasedenglishman",
-            "user_nickname": "batman\u2019s dad (deceased)",
+            "user_nickname": "de-christmas tree \ud83c\udf84",
             "sent_image": false,
             "parole_days": 46,
             "deceased": false,
@@ -262,8 +262,8 @@
         },
         "559028502821601301": {
             "username": "sygviii",
-            "user_nickname": "syg \ud83e\ude90 [support]",
-            "sent_image": false,
+            "user_nickname": "syg \ud83e\ude90 [dead]",
+            "sent_image": true,
             "parole_days": 52,
             "deceased": true,
             "deceased_days": 16,
@@ -838,7 +838,7 @@
         },
         "642887054858125344": {
             "username": "bobbieowowowo",
-            "user_nickname": "bobbieowowowo",
+            "user_nickname": "Bobbie the SnOwO Cat",
             "sent_image": true,
             "parole_days": 15,
             "deceased": false,
@@ -950,7 +950,7 @@
         },
         "742551555240230963": {
             "username": "osafia",
-            "user_nickname": "Orsafia",
+            "user_nickname": "Orsafia/Moon",
             "sent_image": false,
             "parole_days": 4,
             "deceased": false,
@@ -1029,6 +1029,7 @@
             "duels_lost": 0
         }
     },
+    "archived_users": {},
     "announcement_channel": 1419517897134440520,
     "allowed_channels": [
         1281049819342831636,
