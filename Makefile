@@ -24,9 +24,7 @@ run: stop
 	  --name $(IMAGE_NAME) \
 	  --restart unless-stopped \
 	  --env-file .env \
-	  -v $(PWD)/badges:/app/badges \
-	  -v $(PWD)/backup.json:/app/backup.json \
-	  -v $(PWD)/bot.log:/app/bot.log \
+	  -v $(PWD):/app \
 	  $(IMAGE_NAME)
 
 ## Stop & remove existing container
