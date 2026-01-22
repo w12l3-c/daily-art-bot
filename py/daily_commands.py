@@ -763,15 +763,10 @@ async def debug(interaction: discord.Interaction, value: bool):
         logger.error(f"Invalid value type when editing user {user.name}'s {'ping'} to {value}")
 @bot.tree.command(name="debug", description="Debugging")
 @app_commands.describe(param="param")
-async def debug(interaction: discord.Interaction, param: int):
+async def debug(interaction: discord.Interaction, param: str):
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
 
-    message = build_reminder_message(param)
-    logger.info(message)
-    logger.info(f"this message is {len(message)} characters")
-    channel = bot.get_channel(1440845080742199426)
-    if channel:
-        await channel.send(message)
+        
 
