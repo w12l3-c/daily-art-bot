@@ -15,7 +15,7 @@ import shared
 def is_warden(user):
     return user.id in shared.WCW_WARDENS
 
-@tasks.loop(minutes=1)  # Save data every 8 hours
+# @tasks.loop(minutes=1)  # Save data every 8 hours
 async def save_data_task():
     data = {
         "current_week": shared.wcw_current_week,
