@@ -460,8 +460,9 @@ async def send_daily_art_message():
                     
             # Reset daily submission flag for next day
             user['sent_image'] = False
+            
+        await save_data_task()
 
-    await save_data_task()
         
 
 
