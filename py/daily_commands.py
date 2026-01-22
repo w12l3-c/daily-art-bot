@@ -746,7 +746,7 @@ async def set_season_number(interaction: discord.Interaction, season_num: int):
 
 @bot.tree.command(name="ping", description="Decide if you want the bot to ping you if you haven't submitted a daily before the deadline")
 @app_commands.describe(value="If the bot should ping you")
-async def debug(interaction: discord.Interaction, value: bool):
+async def ping(interaction: discord.Interaction, value: bool):
     user = interaction.user
     if user.id not in shared.tracked_users:
         await interaction.response.send_message(f"❌ User {user.name} not found in tracking.")
