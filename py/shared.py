@@ -64,6 +64,17 @@ MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, compar
 # Configurable mod IDs
 MOD_IDS = [516344918566764594]
 
+# Challenge tracking values
+# data will be stored in backup.json
+challenge_day = 0
+challenge_length = 7
+CHALLENGE_MODS = [
+    742551555240230963, # Orsafia
+]
+challenge_theme = ""
+challenge_number = 1
+challenge_threshold = 7
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -156,3 +167,31 @@ async def handle_badge_upload(message):
         logger.error(f"Error uploading badge: {e}")
         await message.channel.send(f"❌ {member.display_name}, there was an error uploading the badge.")
         return True
+    
+# thank you stackoverflow user Łukasz Kwieciński
+class ConfirmationPrompt(discord.ui.View):
+    def __init__(self, *args, **kwargs):
+        super().__init__ (*args, **kwargs)
+        self.confirmed: bool = False
+
+    @discord.ui.button(label = '❌', style = discord.ButtonStyle.blurple)
+    async def returnFalse(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.stop()
+        await interaction.response.defer()
+
+    @discord.ui.button(label = '✅', style = discord.ButtonStyle.blurple)
+    async def returnTrue(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.confirmed = True
+        self.stop()
+        await interaction.response.defer()
+        
+# usage:
+# confirmation = await confirmation_prompt(...)
+# if confirmation: ...
+async def confirmation_prompt(interaction: discord.Interaction, warning: str, ephemeral: bool) -> bool:
+    view = ConfirmationPrompt()
+    await interaction.response.send_message(
+        embed=discord.Embed(title=warning), view=view, ephemeral=ephemeral
+    )
+    await view.wait()
+    return view.confirmed

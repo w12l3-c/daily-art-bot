@@ -458,6 +458,10 @@ async def send_daily_art_message():
                     user['buffer'] -= reduction
                     logger.info(f"Auto-consumed {reduction} buffer for {user['user_nickname']} to reduce remaining missing days")
                     
+
+            # update challenge tracking
+            
+
             # Reset daily submission flag for next day
             user['sent_image'] = False
             
@@ -472,6 +476,11 @@ async def save_data_task():
         "current_day": shared.current_day,
         "season": shared.season,
         "season_days": shared.season_days,
+        "challenge_day": shared.challenge_day,
+        "challenge_length": shared.challenge_length,
+        "challenge_theme": shared.challenge_theme,
+        "challenge_number": shared.challenge_theme,
+        "challenge_threshold": shared.challenge_threshold,
         "season_theme": shared.season_theme,
         "tracked_users": shared.tracked_users,
         "archived_users": shared.archived_users,

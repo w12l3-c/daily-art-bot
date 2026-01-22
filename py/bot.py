@@ -18,7 +18,7 @@ import forced_events  # Import forced events to register debug commands
 
 def load_data():
     try:
-        # load daily art json
+        # load daily art and challenge json
         with open(shared.SAVED_DATA_PATH, "r") as f:
             data = json.load(f)
             shared.current_day = data.get("current_day", shared.current_day)
@@ -28,6 +28,11 @@ def load_data():
             loaded_users = data.get("tracked_users", {})
             loaded_archived = data.get("archived_users", {})
             shared.announcement_channel = data.get("announcement_channel", shared.allowed_channels[0] if shared.allowed_channels else None)
+
+            shared.challenge_day = data.get("challenge_day", shared.challenge_day)
+            shared.challenge_length = data.get("challenge_day", shared.challenge_length)
+            shared.challenge_theme = data.get("challenge_day", shared.challenge_theme)
+            shared.challenge_number = data.get("challenge_number", shared.challenge_number)
             
             # Load allowed_channels if it exists, otherwise keep the current one
             loaded_allowed_channels = data.get("allowed_channels", shared.allowed_channels)
