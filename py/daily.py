@@ -2,6 +2,7 @@
 daily.py
 This file contains functions related to the daily art tracking aspect of the bot
 """
+import asyncio
 import discord
 from discord.ext import tasks
 from datetime import datetime
@@ -363,7 +364,6 @@ async def send_daily_art_message():
                         await asyncio.sleep(0.2)
                     
                     # Send all chunks without attachment
-                    import asyncio
                     for i, chunk in enumerate(chunks):
                         await asyncio.sleep(0.1)
                         await channel.send(chunk)
