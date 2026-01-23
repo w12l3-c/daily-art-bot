@@ -13,6 +13,8 @@ import shared
 from shared import bot, logger
 import daily
 import daily_commands
+import challenge
+import challenge_commands
 import wcw
 import forced_events  # Import forced events to register debug commands
 
@@ -30,8 +32,8 @@ def load_data():
             shared.announcement_channel = data.get("announcement_channel", shared.allowed_channels[0] if shared.allowed_channels else None)
 
             shared.challenge_day = data.get("challenge_day", shared.challenge_day)
-            shared.challenge_length = data.get("challenge_day", shared.challenge_length)
-            shared.challenge_theme = data.get("challenge_day", shared.challenge_theme)
+            shared.challenge_length = data.get("challenge_length", shared.challenge_length)
+            shared.challenge_theme = data.get("challenge_theme", shared.challenge_theme)
             shared.challenge_number = data.get("challenge_number", shared.challenge_number)
             
             # Load allowed_channels if it exists, otherwise keep the current one

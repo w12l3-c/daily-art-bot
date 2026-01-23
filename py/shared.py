@@ -176,22 +176,27 @@ class ConfirmationPrompt(discord.ui.View):
 
     @discord.ui.button(label = '❌', style = discord.ButtonStyle.blurple)
     async def returnFalse(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.stop()
         await interaction.response.defer()
+        self.stop()
 
     @discord.ui.button(label = '✅', style = discord.ButtonStyle.blurple)
     async def returnTrue(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.confirmed = True
-        self.stop()
         await interaction.response.defer()
+        self.stop()
         
 # usage:
 # confirmation = await confirmation_prompt(...)
 # if confirmation: ...
-async def confirmation_prompt(interaction: discord.Interaction, warning: str, ephemeral: bool) -> bool:
+async def confirmation_prompt(interaction: discord.Interaction, warning: str, ephemeral: bool) -> tuple[bool, discord.Message]:
     view = ConfirmationPrompt()
     await interaction.response.send_message(
-        embed=discord.Embed(title=warning), view=view, ephemeral=ephemeral
+        embed=discord.Embed(title=warning),
+        view=view,
+        ephemeral=ephemeral
     )
     await view.wait()
-    return view.confirmed
+
+    msg = await interaction.original_response()
+
+    return view.confirmed, msg

@@ -12,6 +12,7 @@ import random
 import forced_events
 from duel import update_duel_progress, get_duel_rankings, get_duel_data
 from chain import process_chain_submission, get_chain_data
+import asyncio
 
 import shared
 from shared import bot, logger
@@ -150,25 +151,24 @@ async def on_message_daily(message):
                 # There's a 1/10 chance that Zak will get yelled at whenever submitting a daily
                 random.seed()
                 should_yell_at_zak = message.author.id == 472930608734142464 and random.random() * 10 < 1
-
-                if user_data['sent_image']:
+                if should_yell_at_zak:
+                    await message.channel.send(f"<@{message.author.id}> LOCK IN")
+                elif user_data['sent_image']:
                     # User already submitted daily art, count this as buffer
                     user_data['buffer'] = user_data.get('buffer', 0) + 1
                     print(f"🛑 {message.author.name} submitted additional #daily art as buffer.")
                     logger.info(f"{message.author.name} submitted additional #daily art as buffer.")
-                    if should_yell_at_zak:
-                        await message.channel.send(f"<@{message.author.id}> LOCK IN")
-                    else:
-                        await message.channel.send(f"📌 {message.author.display_name}, you've already submitted today's art! This has been recorded as buffer art.")
+                    await message.channel.send(f"📌 {message.author.display_name}, you've already submitted today's art! This has been recorded as buffer art.")
                 else:
                     # First daily submission
                     user_data['sent_image'] = True  # Mark as official art submission
-                    print(f"✅ {message.author.name} submitted official art.")
-                    logger.info(f"{message.author.name} submitted official art.")
-                    if should_yell_at_zak:
-                        await message.channel.send(f"<@{message.author.id}> LOCK IN")
+                    if user_data["in_challenge"]:
+                        await message.channel.send(f"{message.author.display_name}, you have completed your challenge today!")
                     else:
+                        print(f"✅ {message.author.name} submitted official art.")
+                        logger.info(f"{message.author.name} submitted official art.")
                         await message.channel.send(f"🎨 {message.author.display_name}, your art has been recorded for today!")
+                        
                 
                 # Update duel progress for this user (regardless of buffer or daily)
                 updated_duels = update_duel_progress(message.author.id, datetime.now())
@@ -363,7 +363,6 @@ async def send_daily_art_message():
                         await asyncio.sleep(0.2)
                     
                     # Send all chunks without attachment
-                    import asyncio
                     for i, chunk in enumerate(chunks):
                         await asyncio.sleep(0.1)
                         await channel.send(chunk)
@@ -457,10 +456,10 @@ async def send_daily_art_message():
                     user['missing_days'] -= reduction
                     user['buffer'] -= reduction
                     logger.info(f"Auto-consumed {reduction} buffer for {user['user_nickname']} to reduce remaining missing days")
-                    
 
-            # update challenge tracking
-            
+                if user["in_challenge"]:
+                    user["challenge_submissions"] += 1
+
 
             # Reset daily submission flag for next day
             user['sent_image'] = False
@@ -479,7 +478,7 @@ async def save_data_task():
         "challenge_day": shared.challenge_day,
         "challenge_length": shared.challenge_length,
         "challenge_theme": shared.challenge_theme,
-        "challenge_number": shared.challenge_theme,
+        "challenge_number": shared.challenge_number,
         "challenge_threshold": shared.challenge_threshold,
         "season_theme": shared.season_theme,
         "tracked_users": shared.tracked_users,
