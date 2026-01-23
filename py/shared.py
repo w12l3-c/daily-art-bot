@@ -1,17 +1,22 @@
 """
-shared.py
+py
 This file contains all global constants/variables/functions used by other scripts
 """
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from datetime import datetime
 import os
 import aiohttp
+import json
 from dotenv import load_dotenv 
 import shutil
 import logging
 from pathlib import Path
+
+# sketchy, shared shouldn't be importing from elsewhere
+from duel import get_duel_data
+from chain import get_chain_data
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -23,6 +28,9 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 PROJECT_ROOT_PATH = Path(__file__).resolve().parent.parent
+
+# Server values
+guild_id = 1359790250729148466
 
 # Daily art tracking values
 allowed_channels = [1281049819342831636, 1440845080742199426]
@@ -74,6 +82,7 @@ CHALLENGE_MODS = [
 challenge_theme = ""
 challenge_number = 1
 challenge_threshold = 7
+
 
 # Configure logging
 logging.basicConfig(
@@ -176,22 +185,75 @@ class ConfirmationPrompt(discord.ui.View):
 
     @discord.ui.button(label = '❌', style = discord.ButtonStyle.blurple)
     async def returnFalse(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.stop()
         await interaction.response.defer()
+        self.stop()
 
     @discord.ui.button(label = '✅', style = discord.ButtonStyle.blurple)
     async def returnTrue(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.confirmed = True
-        self.stop()
         await interaction.response.defer()
+        self.stop()
         
 # usage:
-# confirmation = await confirmation_prompt(...)
-# if confirmation: ...
-async def confirmation_prompt(interaction: discord.Interaction, warning: str, ephemeral: bool) -> bool:
+# confirmation, msg = await confirmation_prompt(interaction, warning="...")
+# if confirmation: 
+#   await msg.edit(content="...", view=None, embed=None)
+async def confirmation_prompt(interaction: discord.Interaction, title: str = "", description: str = "", ephemeral: bool = True) -> tuple[bool, discord.Message]:
     view = ConfirmationPrompt()
     await interaction.response.send_message(
-        embed=discord.Embed(title=warning), view=view, ephemeral=ephemeral
+        embed=discord.Embed(title=title, description=description),
+        view=view,
+        ephemeral=ephemeral
     )
     await view.wait()
-    return view.confirmed
+
+    msg = await interaction.original_response()
+
+    return view.confirmed, msg
+
+
+@tasks.loop(hours=time_deploy)  # Save data every 8 hours
+async def save_data_task():
+    data = {
+        "current_day": current_day,
+        "season": season,
+        "season_days": season_days,
+        "challenge_day": challenge_day,
+        "challenge_length": challenge_length,
+        "challenge_theme": challenge_theme,
+        "challenge_number": challenge_number,
+        "challenge_threshold": challenge_threshold,
+        "season_theme": season_theme,
+        "guild_id": guild_id,
+        "tracked_users": tracked_users,
+        "archived_users": archived_users,
+        "announcement_channel": announcement_channel,
+        "allowed_channels": allowed_channels,
+        "duel": get_duel_data(),
+        "chain": get_chain_data()
+    }
+    
+    with open(SAVED_DATA_PATH, "w") as f:
+        json.dump(data, f, indent=4)
+    
+    print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+def format_username(username):
+    # escapes all special formatting characters
+    username = (
+        username
+        .replace("*", "\\*")
+        .replace("_", "\\_")
+        .replace("|", "\\|")
+        .replace("`", "\\`")
+        .replace("~", "\\~")
+    )
+
+    # add other formatting options as needed
+    return username
+
+
+def get_submission_link(id: int) -> str:
+    return f"https://discord.com/channels/{guild_id}/{tracked_users[id]['submission']}" if id in tracked_users and tracked_users[id]['submission'] else 'None'
+    

@@ -82,7 +82,7 @@ todo:
 - `/badge_help`: Information about badge uploads
 
 ### User Attributes:
-- `sent_image`: User status of sending image
+- `submission`: User status of sending image
 - `parole_days`: Days until user is released from jail
 - `deceased`: User status of being deceased 
 - `deceased_days`: Days since user has been deceased 

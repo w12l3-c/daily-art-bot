@@ -13,9 +13,11 @@ import random
 import forced_events
 from duel import update_duel_progress, get_duel_rankings, get_duel_data
 from chain import process_chain_submission, get_chain_data
+from challenge import end_challenge
+import asyncio
 
 import shared
-from shared import bot, logger
+from shared import bot, logger, save_data_task
 
 def reset_user_stats():
     """Reset all user stats for a new season while preserving core identity info"""
@@ -29,7 +31,7 @@ def reset_user_stats():
         user.update({
             'username': username,
             'user_nickname': user_nickname,
-            'sent_image': False,
+            'submission': "",
             'parole_days': 0,
             'deceased': False,
             'deceased_days': 0,
@@ -40,7 +42,12 @@ def reset_user_stats():
             'probation': False,
             'ping': ping,
             'duels_won': 0,
-            'duels_lost': 0
+            'duels_lost': 0,
+            'in_challenges': False,
+            'challenge_participations': 0,
+            'challenge_completions': 0,
+            'challenge_streak': 0,
+            'challenge_submissions': 0,
         })
     
     logger.info(f"Reset stats for {len(shared.tracked_users)} users for new season")
@@ -93,8 +100,6 @@ async def on_message_daily(message):
             except (IndexError, AttributeError):
                 # If there's any error accessing snapshots, treat as no media
                 pass
-
-    logger.info(f"has media: {has_media}")
     
     if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
@@ -116,7 +121,7 @@ async def on_message_daily(message):
                 shared.tracked_users[message.author.id] = {
                     'username': message.author.name,
                     'user_nickname': user_nickname,
-                    'sent_image': False,
+                    'submission': "",
                     'parole_days': 0,
                     'deceased': False,
                     'deceased_days': 0,
@@ -127,7 +132,12 @@ async def on_message_daily(message):
                     'probation': False,
                     'ping': False,  
                     'duels_won': 0,
-                    'duels_lost': 0
+                    'duels_lost': 0,
+                    'in_challenges': False,
+                    'challenge_participations': 0,
+                    'challenge_completions': 0,
+                    'challenge_streak': 0,
+                    'challenge_submissions': 0,
                 }
 
                 print(f"🎯 Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
@@ -151,25 +161,26 @@ async def on_message_daily(message):
                 # There's a 1/10 chance that Zak will get yelled at whenever submitting a daily
                 random.seed()
                 should_yell_at_zak = message.author.id == 472930608734142464 and random.random() * 10 < 1
-
-                if user_data['sent_image']:
+                if should_yell_at_zak:
+                    await message.channel.send(f"<@{message.author.id}> LOCK IN")
+                elif user_data['submission']:
                     # User already submitted daily art, count this as buffer
                     user_data['buffer'] = user_data.get('buffer', 0) + 1
                     print(f"🛑 {message.author.name} submitted additional #daily art as buffer.")
                     logger.info(f"{message.author.name} submitted additional #daily art as buffer.")
-                    if should_yell_at_zak:
-                        await message.channel.send(f"<@{message.author.id}> LOCK IN")
-                    else:
-                        await message.channel.send(f"📌 {message.author.display_name}, you've already submitted today's art! This has been recorded as buffer art.")
+                    await message.channel.send(f"📌 {message.author.display_name}, you've already submitted today's art! This has been recorded as buffer art.")
                 else:
                     # First daily submission
-                    user_data['sent_image'] = True  # Mark as official art submission
-                    print(f"✅ {message.author.name} submitted official art.")
-                    logger.info(f"{message.author.name} submitted official art.")
-                    if should_yell_at_zak:
-                        await message.channel.send(f"<@{message.author.id}> LOCK IN")
+                    user_data['submission'] = f"{message.channel.id}/{message.id}"  # Mark as official art submission
+                    if user_data["in_challenges"]:
+                        print(f"✅ {message.author.name} completed their challenge.")
+                        logger.info(f"{message.author.name} completed their challenge.")
+                        await message.channel.send(f"{message.author.display_name}, you have completed your challenge today!")
                     else:
+                        print(f"✅ {message.author.name} submitted official art.")
+                        logger.info(f"{message.author.name} submitted official art.")
                         await message.channel.send(f"🎨 {message.author.display_name}, your art has been recorded for today!")
+                        
                 
                 # Update duel progress for this user (regardless of buffer or daily)
                 updated_duels = update_duel_progress(message.author.id, datetime.now())
@@ -189,7 +200,7 @@ async def on_message_daily(message):
                 
                 # Also count chain submissions towards daily/buffer art
                 if chain_processed:
-                    if user_data['sent_image']:
+                    if user_data['submission']:
                         # User already submitted daily art, count chain as buffer
                         user_data['buffer'] = user_data.get('buffer', 0) + 1
                         print(f"🔗 {message.author.name} submitted chain art as buffer (already has daily submission).")
@@ -197,7 +208,7 @@ async def on_message_daily(message):
                         await message.channel.send(f"🔗 {message.author.display_name}, your chain submission has been recorded! This also counts as buffer art since you've already submitted today.")
                     else:
                         # First submission of the day, count as daily art
-                        user_data['sent_image'] = True
+                        user_data['submission'] = f"{message.channel.id}/{message.id}"
                         print(f"🔗 {message.author.name} submitted chain art as daily submission.")
                         logger.info(f"{message.author.name} submitted chain art as daily submission.")
                         await message.channel.send(f"🔗 {message.author.display_name}, your chain submission has been recorded! This also counts as today's daily art.")
@@ -246,10 +257,12 @@ async def send_daily_art_message():
             print(f"Day {shared.current_day} has ended!")
             logger.info(f"Day {shared.current_day} has ended!")
             shared.current_day += 1
+            shared.challenge_day += 1
             
         else:
             print("No tracked users - pausing season progression")
             logger.info("No tracked users - season paused until users are added")
+
         if shared.current_day >= shared.season_days + 1:
             badge_pathway = f"badges/UWVAC_Badges_Season{shared.season}.png"
             badge = None
@@ -410,7 +423,7 @@ async def send_daily_art_message():
                 user['consecutive_missed_days'] = 0
             
             # Process daily submission status first
-            if not user['sent_image']:
+            if not user['submission']:
                 if not user['probation']:
                     # Increment consecutive missed days
                     user['consecutive_missed_days'] += 1
@@ -457,76 +470,79 @@ async def send_daily_art_message():
                     user['missing_days'] -= reduction
                     user['buffer'] -= reduction
                     logger.info(f"Auto-consumed {reduction} buffer for {user['user_nickname']} to reduce remaining missing days")
-                    
 
-            # update challenge tracking
-            
+                if user["in_challenges"]:
+                    user["challenge_submissions"] += 1
+
 
             # Reset daily submission flag for next day
-            user['sent_image'] = False
+            user['submission'] = ""
+        
+        # End challenge logic
+        if shared.challenge_day > shared.challenge_length:
+            channel = bot.get_channel(shared.announcement_channel)
+
+            # build message
+            message = f"## Challenge #{shared.challenge_number}: \"{shared.challenge_theme}\" has ended!\n"
+
+            message += "Completed: " + ", ".join(
+                list(
+                    map(
+                        lambda user: user["user_nickname"],
+                        filter(
+                            lambda user: user["in_challenges"] and user["challenge_submissions"] >= shared.challenge_threshold,
+                            shared.tracked_users.values()
+                        )
+                    )
+                )
+            )
+
+            message += "\n\nFailed: " + ", ".join(
+                list(
+                    map(
+                        lambda user: user["user_nickname"],
+                        filter(
+                            lambda user: user["in_challenges"] and user["challenge_submissions"] < shared.challenge_threshold,
+                            shared.tracked_users.values()
+                        )
+                    )
+                )
+            )
+
+            message += "\n\nTill next time!"
+
+            if channel:
+                await channel.send(message)    
+            else:
+                logger.error(f"Could not send challenge end results - announcement channel {shared.announcement_channel} not found")
             
+            await end_challenge()
+        
+
         await save_data_task()
 
         
 
 
-@tasks.loop(hours=shared.time_deploy)  # Save data every 8 hours
-async def save_data_task():
-    data = {
-        "current_day": shared.current_day,
-        "season": shared.season,
-        "season_days": shared.season_days,
-        "challenge_day": shared.challenge_day,
-        "challenge_length": shared.challenge_length,
-        "challenge_theme": shared.challenge_theme,
-        "challenge_number": shared.challenge_theme,
-        "challenge_threshold": shared.challenge_threshold,
-        "season_theme": shared.season_theme,
-        "tracked_users": shared.tracked_users,
-        "archived_users": shared.archived_users,
-        "announcement_channel": shared.announcement_channel,
-        "allowed_channels": shared.allowed_channels,
-        "duel": get_duel_data(),
-        "chain": get_chain_data()
-    }
-    
-    with open(shared.SAVED_DATA_PATH, "w") as f:
-        json.dump(data, f, indent=4)
-    
-    print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-
-def format_username(username):
-    # escapes all special formatting characters
-    username = (
-        username
-        .replace("*", "\\*")
-        .replace("_", "\\_")
-        .replace("|", "\\|")
-        .replace("`", "\\`")
-        .replace("~", "\\~")
-    )
-
-    # add other formatting options as needed
-    return username
 
 
 def build_reminder_message(num = 1):        
     # Build the daily art message inline
     USERS_PER_LINE = 4
 
-    users_not_sent = [u for u in shared.tracked_users.values() if not u['sent_image']]
-    users_sent = [u for u in shared.tracked_users.values() if u['sent_image']]
+    users_not_sent = [u for u in shared.tracked_users.values() if not u['submission']]
+    users_sent = [u for u in shared.tracked_users.values() if u['submission']]
     
-    message = f"**Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
+    message = f"## Day Complete!\n" if num == 3 else ""
+
+    message += f"**Season {shared.season} - {shared.season_theme}: Day {shared.current_day} - Daily Art Challenge** 🎨\n"
     message += f"**🔄 On parole:** \n"
     for i, user in enumerate(users_sent):
         if i % USERS_PER_LINE != 0:
             message += "  •  "
         elif i != 0:
             message += "\n"
-        message += f"{format_username(user['user_nickname'])}"
+        message += f"{shared.format_username(user['user_nickname'])} {' :happymiku:' if user['in_challenges'] else ''}"
     
     message += "\n\n**⛓️ Jailed:**\n"
     # message += "🧱"*20 + "\n"
@@ -540,14 +556,14 @@ def build_reminder_message(num = 1):
             message += "  •  "
         elif i != 0:
             message += "\n"
-        message += f"{format_username(user['user_nickname'])}"
+        message += f"{shared.format_username(user['user_nickname'])} {' :happymiku:' if user['in_challenges'] else ''}"
 
     message += "\n\n**🪦 Deceased:**\n"
 
     for i, user in enumerate(deceased_users):
         if i % USERS_PER_LINE != 0:
             message += "  •  "
-        message += f"{format_username(user['user_nickname'])}"
+        message += f"{shared.format_username(user['user_nickname'])} {' :happymiku:' if user['in_challenges'] else ''}"
         if i % USERS_PER_LINE == USERS_PER_LINE - 1:
             message += "\n"
     
@@ -558,7 +574,7 @@ def build_reminder_message(num = 1):
     # Find users who need to submit
     ping_users = []
     for user_id, user in shared.tracked_users.items():
-        if user['ping'] and not user['sent_image']:
+        if user['ping'] and not user['submission']:
             member = bot.get_user(user_id)
             if member:
                 ping_users.append(member.mention)
