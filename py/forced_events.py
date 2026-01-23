@@ -3,7 +3,7 @@ from discord import app_commands
 from datetime import datetime
 
 import shared
-from shared import bot, logger
+from shared import bot, logger, save_data_task
 import daily
 import wcw
 from duel import cleanup_expired_duels
@@ -82,7 +82,7 @@ async def force_save_daily_data(interaction: discord.Interaction):
     
     try:
         # Call the actual task function
-        await daily.save_data_task()
+        await shared.save_data_task()
         
         await interaction.followup.send(
             f"✅ **Daily data saved!**\n"
@@ -241,8 +241,8 @@ async def debug_event_status(interaction: discord.Interaction):
         f"**User Stats:**\n"
         f"• Tracked users: {len(shared.tracked_users)}\n"
         f"• Archived users: {len(shared.archived_users)}\n"
-        f"• Submitted today: {sum(1 for u in shared.tracked_users.values() if u['sent_image'])}\n"
-        f"• Not submitted: {sum(1 for u in shared.tracked_users.values() if not u['sent_image'])}\n\n"
+        f"• Submitted today: {sum(1 for u in shared.tracked_users.values() if u['submission'])}\n"
+        f"• Not submitted: {sum(1 for u in shared.tracked_users.values() if not u['submission'])}\n\n"
         f"**Channels:**\n"
         f"• Announcement: <#{shared.announcement_channel}>\n"
         f"• Tracking: {', '.join(f'<#{cid}>' for cid in shared.allowed_channels)}"

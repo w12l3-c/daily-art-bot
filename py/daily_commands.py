@@ -204,7 +204,7 @@ async def add_user(interaction: discord.Interaction, user: discord.User):
         shared.tracked_users[user.id] = {
             'username': user.name,
             'user_nickname': user_nickname,
-            'sent_image': False,
+            'submission': "",
             'parole_days': 0,
             'deceased': False,
             'deceased_days': 0,
@@ -215,7 +215,12 @@ async def add_user(interaction: discord.Interaction, user: discord.User):
             'probation': False,
             'ping': False,
             'duels_won': 0,
-            'duels_lost': 0
+            'duels_lost': 0,
+            'in_challenges': False,
+            'challenge_participations': 0,
+            'challenge_completions': 0,
+            'challenge_streak': 0,
+            'challenge_submissions': 0,
         }
         await interaction.response.send_message(f"✅ {user.name} added to the tracking list!", ephemeral=True)
     else:
@@ -251,7 +256,7 @@ async def join_tracking(interaction: discord.Interaction):
             shared.tracked_users[user.id] = {
                 'username': user.name,
                 'user_nickname': user_nickname,
-                'sent_image': False,
+                'submission': "",
                 'parole_days': 0,
                 'deceased': False,
                 'deceased_days': 0,
@@ -262,7 +267,12 @@ async def join_tracking(interaction: discord.Interaction):
                 'probation': False,
                 'ping': False,  # Enable pings by default for self-joining users
                 'duels_won': 0,
-                'duels_lost': 0
+                'duels_lost': 0,
+                'in_challenges': False,
+                'challenge_participations': 0,
+                'challenge_completions': 0,
+                'challenge_streak': 0,
+                'challenge_submissions': 0,
             }
         msg = "🎨 Welcome back! Your stats have been restored." if restored else "🎨 Welcome to daily art tracking!"
         await interaction.response.send_message(f"{msg} {user_nickname}, you're now tracked for daily submissions and duels.", ephemeral=True)
@@ -321,7 +331,7 @@ async def list_attributes(interaction: discord.Interaction):
         attributes = list(sample_user.keys())
     else:
         attributes = [
-            "username", "user_nickname", "sent_image", "parole_days", "deceased",
+            "username", "user_nickname", "submission", "parole_days", "deceased",
             "deceased_days", "missing_days", "consecutive_missed_days", "revival", "buffer", "probation", "ping",
             "duels_won", "duels_lost"
         ]
@@ -340,7 +350,7 @@ async def query_user(interaction: discord.Interaction, user: discord.User):
         message = (
             f"**User:** {u['username']}\n"
             f"**🔗 User Nickname: {u['user_nickname']}**\n"
-            f"📌 Sent Image: {u['sent_image']}\n"
+            f"📌 Submission: {shared.get_submission_link(user)}\n"
             f"🛑 Buffer: {u['buffer']}\n"
             f"⏳ Parole Days: {u['parole_days']}\n"
             f"💀 Deceased: {u['deceased']} ({u['deceased_days']} days)\n"
@@ -369,7 +379,7 @@ async def attribute_autocomplete(
     else:
         # Fallback to default attributes
         attributes = [
-            "username", "user_nickname", "sent_image", "parole_days", "deceased",
+            "username", "user_nickname", "submission", "parole_days", "deceased",
             "deceased_days", "missing_days", "revival", "buffer", "probation", "ping",
             "duels_won", "duels_lost"
         ]
@@ -761,6 +771,27 @@ async def ping(interaction: discord.Interaction, value: bool):
     except ValueError:
         await interaction.response.send_message("⚠️ Invalid value type.")
         logger.error(f"Invalid value type when editing user {user.name}'s {'ping'} to {value}")
+
+
+
+@bot.tree.command(name="find_submissions", description="Find today's submission of a user or all users!")
+@app_commands.describe(user="Select a user, or leave blank to view all")
+async def find_submissions(interaction: discord.Interaction, user: discord.User = None):
+    message = f"Submissions for Day {shared.current_day}:\n"
+    if user:
+        if user.id not in shared.tracked_users:
+            await interaction.response.send_message(f"User {user.name} not found in tracking.", ephemeral=True)
+            return
+        message += f"{shared.format_username(shared.tracked_users[user.id]['user_nickname'])}: " + shared.get_submission_link(user.id)
+    else:
+        for user_id in shared.tracked_users.keys():
+            message += f"{shared.format_username(shared.tracked_users[user_id]['user_nickname'])}: " + shared.get_submission_link(user_id)
+            message += "\n"
+    
+    await interaction.response.send_message(message, ephemeral=True)
+
+
+
 @bot.tree.command(name="debug", description="Debugging")
 @app_commands.describe(param="param")
 async def debug(interaction: discord.Interaction, param: str):

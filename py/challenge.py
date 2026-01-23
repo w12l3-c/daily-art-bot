@@ -6,8 +6,7 @@ import discord
 from discord import app_commands
 import os
 import shared
-from shared import bot, logger
-from daily import save_data_task
+from shared import bot, logger, save_data_task
 
 def is_challenge_active() -> bool:
     return shared.challenge_day != 0
@@ -15,10 +14,11 @@ def is_challenge_active() -> bool:
 
 async def end_challenge():
     if not is_challenge_active():
+        logger.log("Challenge is still not active! Returning...")
         return
 
     for user in shared.tracked_users.values():
-        if user["in_challenge"]:
+        if user["in_challenges"]:
             if user["challenge_submissions"] >= shared.challenge_threshold:
                 user["challenge_completions"] += 1
                 user["challenge_streak"] += 1
@@ -39,11 +39,11 @@ async def end_challenge():
 
 async def add_user(user: discord.User):
     if user.id in shared.tracked_users:
-        shared.tracked_users[user.id]["in_challenge"] = True
+        shared.tracked_users[user.id]["in_challenges"] = True
         await save_data_task()
 
 
 async def remove_user(user: discord.User):
     if user.id in shared.tracked_users:
-        shared.tracked_users[user.id]["in_challenge"] = False
+        shared.tracked_users[user.id]["in_challenges"] = False
         await save_data_task()

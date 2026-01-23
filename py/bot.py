@@ -23,6 +23,7 @@ def load_data():
         # load daily art and challenge json
         with open(shared.SAVED_DATA_PATH, "r") as f:
             data = json.load(f)
+            shared.guild_id = data.get("guild_id", shared.guild_id)
             shared.current_day = data.get("current_day", shared.current_day)
             shared.season = data.get("season", shared.season)
             shared.season_days = data.get("season_days", shared.season_days)

@@ -217,7 +217,7 @@ async def on_message(message):
             user_data = tracked_users[message.author.id]
 
             if "#daily" in content_lower:
-                user_data['sent_image'] = True  # Mark as official art submission
+                user_data['submission'] = f"{message.channel.id}/{message.id}"  # Mark as official art submission
                 print(f"✅ {message.author.name} submitted official art.")
                 logger.info(f"{message.author.name} submitted official art.")
                 await message.channel.send(f"🎨 {message.author.name}, your art has been recorded for today!")
@@ -446,7 +446,7 @@ async def add_user(interaction: discord.Interaction, user: discord.User):
         tracked_users[user.id] = {
             'username': user.name,
             'user_nickname': user_nickname,
-            'sent_image': False,
+            'submission': "",
             'parole_days': 0,
             'deceased': False,
             'deceased_days': 0,
@@ -502,7 +502,7 @@ async def list_attributes(interaction: discord.Interaction):
         attributes = list(sample_user.keys())
     else:
         attributes = [
-            "username", "user_nickname", "sent_image", "parole_days", "deceased",
+            "username", "user_nickname", "submission", "parole_days", "deceased",
             "deceased_days", "missing_days", "revival", "buffer", "probation", "ping",
             "duels_won", "duels_lost"
         ]
@@ -521,7 +521,7 @@ async def query_user(interaction: discord.Interaction, user: discord.User):
         message = (
             f"**User:** {u['username']}\n"
             f"**🔗 User Nickname: {u['user_nickname']}**\n"
-            f"📌 Sent Image: {u['sent_image']}\n"
+            f"📌 Sent Image: {u['submission']}\n"
             f"🛑 Buffer: {u['buffer']}\n"
             f"⏳ Parole Days: {u['parole_days']}\n"
             f"💀 Deceased: {u['deceased']} ({u['deceased_days']} days)\n"
@@ -549,7 +549,7 @@ async def attribute_autocomplete(
     else:
         # Fallback to default attributes
         attributes = [
-            "username", "user_nickname", "sent_image", "parole_days", "deceased",
+            "username", "user_nickname", "submission", "parole_days", "deceased",
             "deceased_days", "missing_days", "revival", "buffer", "probation", "ping",
             "duels_won", "duels_lost"
         ]
@@ -828,8 +828,8 @@ async def set_season_number(interaction: discord.Interaction, season_num: int):
 async def send_daily_art_message():
     global current_day, season, season_theme, season_days
 
-    users_not_sent = [u for u in tracked_users.values() if not u['sent_image']]
-    users_sent = [u for u in tracked_users.values() if u['sent_image']]
+    users_not_sent = [u for u in tracked_users.values() if not u['submission']]
+    users_sent = [u for u in tracked_users.values() if u['submission']]
     print(season_theme)
     logger.debug(f"Current season theme: {season_theme}")
     message = f"## **Season {season} - {season_theme}: Day {current_day} - Daily Art Challenge** 🎨\n"
@@ -950,7 +950,7 @@ async def send_daily_art_message():
             await channel.send(season_message)
 
         for user in tracked_users.values():
-            if not user['sent_image']:
+            if not user['submission']:
                 if not user['probation']:
                     if not user['deceased']:
                         user['deceased'] = True
@@ -967,7 +967,7 @@ async def send_daily_art_message():
                 reduction = min(user['missing_days'], user['buffer'])
                 user['missing_days'] -= reduction
                 user['buffer'] -= reduction
-            user['sent_image'] = False
+            user['submission'] = False
         
 
 
@@ -992,7 +992,7 @@ async def save_data_task():
 async def ping_jailed_users():
     ping_users = []
     for user_id, user in tracked_users.items():
-        if user['ping'] and not user['sent_image']:
+        if user['ping'] and not user['submission']:
             ping_users.append(user_id)
 
     print(ping_users)
@@ -1003,7 +1003,7 @@ async def ping_jailed_users():
         message = "🚨 **Final Warning!** 🚨\n"
 
         for user_id, user in tracked_users.items():
-            if user['ping'] and not user['sent_image']:
+            if user['ping'] and not user['submission']:
                 member = bot.get_user(user_id)
                 if member:
                     message += f"{member.mention} "
@@ -1031,7 +1031,7 @@ async def cleanup_duels():
 #         print("Pinging jailed users...")
 #         message = ""
 #         for user_id, user in tracked_users.items():
-#             if user['ping'] and user['sent_image'] == False:
+#             if user['ping'] and user['submission'] == False:
 #                 # message += f"@{user['username']} "
 #                 member = bot.get_user(user_id)
 #                 message += f"{member.mention} "
