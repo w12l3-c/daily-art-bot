@@ -73,7 +73,7 @@ async def challenge_start(interaction: discord.Interaction, theme: str, threshol
     else:
         message += f"We currently have no participants 😢"
 
-    message += f"\n-# Join this challenge using /challenge_join, and automatically join all challenges with /challenge_opt_in\n\n"
+    message += f"\n-# Join Challenges using /challenge_join\n\n"
 
 
     # add random flavour text cuz im bored
@@ -103,7 +103,7 @@ async def challenge_cancel(interaction: discord.Interaction):
     
 
 
-@bot.tree.command(name="challenge_add", description="Add a user to the challenge! If there isn't one ongoing, they will be in the next! (Must be mod)")
+@bot.tree.command(name="challenge_add", description="Add a user to the Challenges! (Must be mod)")
 @app_commands.describe(user="Select a user")
 async def challenge_add(interaction: discord.Interaction, user: discord.User):
     if not shared.has_admin_or_mod_permissions(interaction) and interaction.user.id not in shared.CHALLENGE_MODS:
@@ -119,20 +119,14 @@ async def challenge_add(interaction: discord.Interaction, user: discord.User):
 
     await add_user(user)
 
-    if is_challenge_active():
-        if in_challenge:
-            await interaction.response.send_message(f"{nickname} was already in the challenge!", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"{nickname} has been added to the challenge!", ephemeral=True)   
+    if in_challenge:
+        await interaction.response.send_message(f"{nickname} was already in Challenges!", ephemeral=True)
     else:
-        if in_challenge:
-            await interaction.response.send_message(f"{nickname} was already going to automatically join the next challenge!", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"{nickname} will be added to the next challenge!", ephemeral=True)
+        await interaction.response.send_message(f"{nickname} has been added to Challenges!", ephemeral=True)   
 
 
 
-@bot.tree.command(name="challenge_remove", description="Remove a user from the challenge and opt them out. (Must be mod)")
+@bot.tree.command(name="challenge_remove", description="Remove a user from Challenges. (Must be mod)")
 @app_commands.describe(user="Select a user")
 async def challenge_remove(interaction: discord.Interaction, user: discord.User):
     if not shared.has_admin_or_mod_permissions(interaction) and interaction.user.id not in shared.CHALLENGE_MODS:
@@ -145,76 +139,12 @@ async def challenge_remove(interaction: discord.Interaction, user: discord.User)
 
     in_challenge = shared.tracked_users[user.id]["in_challenge"]
     nickname = shared.tracked_users[user.id]["user_nickname"]
-    opted_in = shared.tracked_users[user.id]["opted_in_challenges"]
-    await set_opt_user(user, False)
+    await remove_user(user)
 
-    if is_challenge_active():
-        if not opted_in:
-            if in_challenge:
-                await interaction.response.send_message(f"{nickname} has been removed from the challenge.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f"{nickname} was not in the challenge.", ephemeral=True)
-        else:
-            if in_challenge:
-                await interaction.response.send_message(f"{nickname} has been removed from the challenge, and has been opted out of future challenges.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f"**This is a message that you should never see. Please contact Ryan.**\n{nickname} was not in the challenge, but note that they have opted out of future challenges.", ephemeral=True)
-
+    if in_challenge:
+        await interaction.response.send_message(f"{nickname} has been removed from the Challenges.", ephemeral=True)
     else:
-        if not opted_in:
-            if in_challenge:
-                await interaction.response.send_message(f"{nickname} will no longer automatically join the next challenge.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f"{nickname} did not choose to automatically join the next challenge.", ephemeral=True)
-        else:
-            if in_challenge:
-                await interaction.response.send_message(f"**{nickname} will no longer automatically join the next challenge, and has been opted out of future challenges.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f"**This is a message that you should never see. Please contact Ryan.**\n{nickname} did not choose to automatically join the next challenge, but they have been opted out of future challenges.", ephemeral=True)
-
-
-
-@bot.tree.command(name="challenge_force_opt_in", description="Opt someone in to automatically joining all future challenges! (Must be mod)")
-@app_commands.describe(user="Select a user")
-async def challenge_force_opt_in(interaction: discord.Interaction, user: discord.User):
-    if not shared.has_admin_or_mod_permissions(interaction) and interaction.user.id not in shared.CHALLENGE_MODS:
-        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
-        return
-    
-    if user.id not in shared.tracked_users:
-        await interaction.response.send_message(f"{user.name} is not in the daily art tracking system! Please add them first.", ephemeral=True)
-        return
-    
-    opted_in = shared.tracked_users[user.id]["opted_in_challenges"]
-    nickname = shared.tracked_users[user.id]["user_nickname"]
-    await set_opt_user(user, True)
-
-    if opted_in:
-        await interaction.response.send_message(f"{nickname} was already opted in!", ephemeral=True)
-    else:
-        await interaction.response.send_message(f"{nickname} has been opted in, and will automatically join all future challenges!", ephemeral=True)
-
-
-# Redundant with leave, but here for legacy
-# @bot.tree.command(name="challenge_force_opt_out", description="Opt someone out of automatically joining all future challenges. (Must be mod)")
-# @app_commands.describe(user="Select a user")
-# async def challenge_force_opt_out(interaction: discord.Interaction, user: discord.User):
-#     if not shared.has_admin_or_mod_permissions(interaction) and interaction.user.id not in shared.CHALLENGE_MODS:
-#         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
-#         return
-    
-#     if user.id not in shared.tracked_users:
-#         await interaction.response.send_message(f"{user.name} is not in the daily art tracking system! Please add them first.", ephemeral=True)
-#         return
-    
-#     opted_in = shared.tracked_users[user.id]["opted_in_challenges"]
-#     nickname = shared.tracked_users[user.id]["user_nickname"]
-#     await set_opt_user(user, False)
-
-#     if opted_in:
-#         await interaction.response.send_message(f"{nickname} has been opted out, and will no longer automatically join all future challenges.", ephemeral=True)
-#     else:
-#         await interaction.response.send_message(f"{nickname} wasn't opted in.", ephemeral=True)
+        await interaction.response.send_message(f"{nickname} was not in Challenges.", ephemeral=True)
 
 
 
@@ -262,11 +192,10 @@ async def challenge_edit(
 @app_commands.describe(
     user="Select a user",
     in_challenge="Whether this user is in this challenge",
-    challenge_participations="The number of challenges this user has participated in",
-    challenge_completions="The number of challenges this user has completed",
+    challenge_participations="The number of Challenges this user has participated in",
+    challenge_completions="The number of Challenges this user has completed",
     challenge_streak="The user's completion streak",
     challenge_submissions="The number of submissions this user has made for the ongoing challenge",
-    opted_in_challenges="Whether the user has opted in to automatically join future challenges",
 )
 async def challenge_edit_user(
     interaction: discord.Interaction, 
@@ -276,7 +205,6 @@ async def challenge_edit_user(
     challenge_completions: int = -1,
     challenge_streak: int = -1,
     challenge_submissions: int = -1,
-    opted_in_challenges: Optional[bool] = None,
 ):
     if not shared.has_admin_or_mod_permissions(interaction) and interaction.user.id not in shared.CHALLENGE_MODS:
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
@@ -301,16 +229,13 @@ async def challenge_edit_user(
     if challenge_submissions != -1:
         shared.tracked_users[user.id]["challenge_submissions"] = challenge_submissions
 
-    if opted_in_challenges is not None:
-        shared.tracked_users[user.id]["opted_in_challenges"] = opted_in_challenges
     
     await interaction.response.send_message(f"Edits saved! The user's attributes are:\n" +
-                                            f"**In challenge? ** {'Yes' if shared.tracked_users[user.id]['in_challenge'] else 'No' }\n" + 
+                                            f"**In Challenges? ** {'Yes' if shared.tracked_users[user.id]['in_challenge'] else 'No' }\n" + 
                                             f"**Challenge participations: ** {shared.tracked_users[user.id]['challenge_participations']}\n" +
                                             f"**Challenge completions: ** {shared.tracked_users[user.id]['challenge_completions']}\n" +
                                             f"**Challenge streak: ** {shared.tracked_users[user.id]['challenge_streak']}\n" +
-                                            f"**Challenge submissions: ** {shared.tracked_users[user.id]['challenge_submissions']}\n" +
-                                            f"**Opted in challenges? ** {'Yes' if shared.tracked_users[user.id]['opted_in_challenges'] else 'No'}\n", ephemeral=True)
+                                            f"**Challenge submissions: ** {shared.tracked_users[user.id]['challenge_submissions']}\n", ephemeral=True)
 
 
     await save_data_task()
@@ -318,7 +243,7 @@ async def challenge_edit_user(
 # <----------------------------------------------------- Non-mod commands ----------------------------------------------------->
 
 
-@bot.tree.command(name="challenge_join", description="Join an ongoing challenge! If there isn't one, automatically join the next!")
+@bot.tree.command(name="challenge_join", description="Join Challenges!")
 async def challenge_join(interaction: discord.Interaction):
     if interaction.user.id not in shared.tracked_users:
         await interaction.response.send_message(f"You are not in the daily art tracking system! Please join that first.", ephemeral=True)
@@ -327,87 +252,29 @@ async def challenge_join(interaction: discord.Interaction):
     in_challenge = shared.tracked_users[interaction.user.id]["in_challenge"]
     await add_user(interaction.user)
 
-    if is_challenge_active():
-        if in_challenge:
-            await interaction.response.send_message(f"You have already joined the challenge!", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"You have joined the challenge!", ephemeral=True)
+    if in_challenge:
+        await interaction.response.send_message(f"You have already joined Challenges!", ephemeral=True)
     else:
-        if in_challenge:
-            await interaction.response.send_message(f"You have already chosen to automatically join the next challenge!", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"There isn't currently an ongoing challenge. You will automatically join the next one!", ephemeral=True)
+        await interaction.response.send_message(f"You have joined Challenges!", ephemeral=True)
     
 
 
-@bot.tree.command(name="challenge_leave", description="Leave an ongoing challenge and opt out.")
+@bot.tree.command(name="challenge_leave", description="Leave Challenges.")
 async def challenge_leave(interaction: discord.Interaction):
     if interaction.user.id not in shared.tracked_users:
         await interaction.response.send_message(f"You are not in the daily art tracking system! Please join that first.", ephemeral=True)
         return
 
     in_challenge = shared.tracked_users[interaction.user.id]["in_challenge"]
-    opted_in = shared.tracked_users[interaction.user.id]["opted_in_challenges"]
     await remove_user(interaction.user)
-    await set_opt_user(interaction.user, False)
 
-    if is_challenge_active():
-        if not opted_in:
-            if in_challenge:
-                await interaction.response.send_message(f"You have left the challenge.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f"You weren't in the challenge.", ephemeral=True)
-        else:
-            if in_challenge:
-                await interaction.response.send_message(f"You have left this challenge and opted out of all future challenges.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f"**This is a message that you should never see. Please contact Ryan.**\nYou weren't in this challenge. Note that you were also opted out of all future challenges.", ephemeral=True)
+    if in_challenge:
+        await interaction.response.send_message(f"You have left Challenges.", ephemeral=True)
     else:
-        if not opted_in:
-            if in_challenge:
-                await interaction.response.send_message(f"You will no longer automatically join the next challenge.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f"You did not choose to automatically join the next challenge.", ephemeral=True)
-        else:
-            if in_challenge:
-                await interaction.response.send_message(f"You have left this challenge, and opted out of all future challenges.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f"**This is a message that you should never see. Please contact Ryan.**\nYou did not choose to automatically join the next challenge. Note that you were also opted out of all future challenges.", ephemeral=True)
+        await interaction.response.send_message(f"You weren't in Challenges.", ephemeral=True)
 
 
 
-
-@bot.tree.command(name="challenge_opt_in", description="Opt in to automatically joining all future challenges!")
-async def challenge_opt_in(interaction: discord.Interaction):
-    if interaction.user.id not in shared.tracked_users:
-        await interaction.response.send_message(f"You are not in the daily art tracking system! Please join that first.", ephemeral=True)
-        return
-    
-    opted_in = shared.tracked_users[interaction.user.id]["opted_in_challenges"]
-
-    await set_opt_user(interaction.user, True)
-
-    if opted_in:
-        await interaction.response.send_message(f"You were already opted in!", ephemeral=True)
-    else:
-        await interaction.response.send_message(f"You have opted in, and will automatically join all future challenges!", ephemeral=True)
-
-
-# Redundant with leave, but here for legacy
-# @bot.tree.command(name="challenge_opt_out", description="Opt out of automatically joining all future challenges.")
-# async def challenge_opt_out(interaction: discord.Interaction):
-#     if interaction.user.id not in shared.tracked_users:
-#         await interaction.response.send_message(f"You are not in the daily art tracking system! Please join that first.", ephemeral=True)
-#         return
-    
-#     opted_in = shared.tracked_users[interaction.user.id]["opted_in_challenges"]
-#     await set_opt_user(interaction.user, False)
-
-#     if opted_in:
-#         await interaction.response.send_message(f"You have opted out, and will no longer automatically join all future challenges.", ephemeral=True)
-#     else:
-#         await interaction.response.send_message(f"You weren't opted in.", ephemeral=True)
-        
 
 @bot.tree.command(name="challenge_stats", description="See your challenge stats!")
 async def challenge_stats(interaction: discord.Interaction):
@@ -421,6 +288,6 @@ async def challenge_stats(interaction: discord.Interaction):
                                             f"Challenge participations: {user['challenge_participations']}\n"+
                                             f"Challenge completions: {user['challenge_completions']}\n"+
                                             f"Challenge streak: {user['challenge_streak']}\n"+
-                                            f"Challenge submissions this challenge: {user['challenge_submissions']}\n"+
-                                            f"In this challenge? {'Yes' if user['in_challenge'] else 'No'}\n", ephemeral=True)    
+                                            f"Submissions for this challenge: {user['challenge_submissions']}\n"+
+                                            f"In Challenges? {'Yes' if user['in_challenge'] else 'No'}\n", ephemeral=True)    
 
