@@ -2,6 +2,7 @@
 daily.py
 This file contains functions related to the daily art tracking aspect of the bot
 """
+import asyncio
 import discord
 from discord.ext import tasks
 from datetime import datetime
