@@ -236,7 +236,7 @@
         "836568530366758942": {
             "username": "lauriceshoes",
             "user_nickname": "L (pls don\u2019t jump me)",
-            "sent_image": false,
+            "sent_image": true,
             "parole_days": 1,
             "deceased": false,
             "deceased_days": 70,
