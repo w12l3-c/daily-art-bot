@@ -20,7 +20,7 @@ challenge_start_flavour_text = [
     "Good luck gamers!",
     "ZAK!!! I have something VERY IMPORTANT to tell you...",
     "so am I getting paid for this",
-    ":happymiku: :happymiku: :happymiku:"
+    "<happymiku:1178130719646679061> <happymiku:1178130719646679061> <happymiku:1178130719646679061>"
 ]
 
 # <----------------------------------------------------- Mod commands ----------------------------------------------------->
