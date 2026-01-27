@@ -71,7 +71,7 @@ WCW_WARDENS = [516344918566764594, 414612223273598986]
 MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, comparison is case-insensitive
 
 # Configurable mod IDs
-MOD_IDS = [516344918566764594]
+MOD_IDS = [516344918566764594, 666772080162766910]
 
 # Challenge tracking values
 # data will be stored in backup.json
@@ -96,21 +96,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
+def has_admin_or_mod_permissions(param) -> bool:
+    user = None
+    if isinstance(param, discord.Interaction):
+        user = param.user
+    elif isinstance(param, discord.User):
+        user = param
+    else:
+        return False
+    
+
     """Check if user has administrator permissions or mod role"""
     # Check for administrator permissions
-    if interaction.user.guild_permissions.administrator:
+    if user.guild_permissions.administrator:
         return True
     
     # Check for mod role (case-insensitive)
-    if hasattr(interaction.user, 'roles'):
+    if hasattr(user, 'roles'):
         mod_roles_lower = [role.lower() for role in MOD_ROLE_NAME]
-        for role in interaction.user.roles:
+        for role in user.roles:
             if role.name.lower() in mod_roles_lower:
                 return True
             
     # Check for IDs
-    if interaction.user.id in MOD_IDS:
+    if user.id in MOD_IDS:
         return True
     
     return False

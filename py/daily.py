@@ -80,8 +80,13 @@ async def on_message_daily(message):
     # Check referenced messages (replies/forwards) safely 
     if not has_media and message.reference is not None and isinstance(message.reference.resolved, discord.Message):
         # Check if it's a self-reply with media
-        if message.reference.resolved.author == message.author and message_has_media(message.reference.resolved):
+        if message_has_media(message.reference.resolved) and (message.reference.resolved.author == message.author or message.author in shared.MOD_IDS):
             has_media = True
+
+            # Allows daily bot admins to add dailies for others
+            if message.author in shared.MOD_IDS:
+                message = message.reference.resolved
+
         else:
             # Check forwarded message snapshots safely
             try:
