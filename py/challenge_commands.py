@@ -243,7 +243,7 @@ async def challenge_edit_user(
                                             f"**Challenge completions: ** {shared.tracked_users[user.id]['challenge_completions']}\n" +
                                             f"**Challenge streak: ** {shared.tracked_users[user.id]['challenge_streak']}\n" +
                                             f"**Challenge submissions: ** {shared.tracked_users[user.id]['challenge_submissions']}\n" +
-                                            f"**Submission: ** {shared.tracked_users[user.id]}"
+                                            f"**Submission: ** {shared.tracked_users[user.id]['submission']}"
                                             , ephemeral=True)
 
 

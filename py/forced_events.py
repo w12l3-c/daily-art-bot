@@ -226,7 +226,7 @@ async def debug_event_status(interaction: discord.Interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
     
-    now = datetime.now()
+    now = shared.now_et()
     
     status_message = (
         f"## 🔍 **Daily Event Debug Status**\n\n"

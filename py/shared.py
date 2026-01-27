@@ -6,6 +6,7 @@ This file contains all global constants/variables/functions used by other script
 import discord
 from discord.ext import commands, tasks
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import os
 import aiohttp
 import json
@@ -235,8 +236,8 @@ async def save_data_task():
     with open(SAVED_DATA_PATH, "w") as f:
         json.dump(data, f, indent=4)
     
-    print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"✅ Data saved at {now_et().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Data saved at {now_et().strftime('%Y-%m-%d %H:%M:%S')}")
 
 def format_username(username):
     # escapes all special formatting characters
@@ -298,3 +299,7 @@ def get_default_user_values(
         "challenge_streak": challenge_streak,
         "challenge_submissions": challenge_submissions,
     }
+
+
+def now_et():
+    return datetime.now(ZoneInfo("America/Toronto"))

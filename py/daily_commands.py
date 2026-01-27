@@ -310,7 +310,7 @@ async def query_user(interaction: discord.Interaction, user: discord.User):
         message = (
             f"**User:** {u['username']}\n"
             f"**🔗 User Nickname: {u['user_nickname']}**\n"
-            f"📌 Submission: {shared.get_submission_link(user)}\n"
+            f"📌 Submission: {shared.get_submission_link(user.id)}\n"
             f"🛑 Buffer: {u['buffer']}\n"
             f"⏳ Parole Days: {u['parole_days']}\n"
             f"💀 Deceased: {u['deceased']} ({u['deceased_days']} days)\n"
