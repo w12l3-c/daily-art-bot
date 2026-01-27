@@ -201,27 +201,7 @@ async def add_user(interaction: discord.Interaction, user: discord.User):
     member = await interaction.guild.fetch_member(user.id)
     user_nickname = member.nick if member and member.nick else user.name
     if user.id not in shared.tracked_users:
-        shared.tracked_users[user.id] = {
-            'username': user.name,
-            'user_nickname': user_nickname,
-            'submission': "",
-            'parole_days': 0,
-            'deceased': False,
-            'deceased_days': 0,
-            'missing_days': 0,
-            'consecutive_missed_days': 0,
-            'revival': 0,
-            'buffer': 0,
-            'probation': False,
-            'ping': False,
-            'duels_won': 0,
-            'duels_lost': 0,
-            'in_challenges': False,
-            'challenge_participations': 0,
-            'challenge_completions': 0,
-            'challenge_streak': 0,
-            'challenge_submissions': 0,
-        }
+        shared.tracked_users[user.id] = shared.get_default_user_values(username = user.name, user_nickname=user_nickname)
         await interaction.response.send_message(f"✅ {user.name} added to the tracking list!", ephemeral=True)
     else:
         await interaction.response.send_message(f"⚠️ {user.name} is already being tracked.", ephemeral=True)
@@ -253,27 +233,7 @@ async def join_tracking(interaction: discord.Interaction):
             shared.tracked_users[user.id] = shared.archived_users.pop(user.id)
             restored = True
         else:
-            shared.tracked_users[user.id] = {
-                'username': user.name,
-                'user_nickname': user_nickname,
-                'submission': "",
-                'parole_days': 0,
-                'deceased': False,
-                'deceased_days': 0,
-                'missing_days': 0,
-                'consecutive_missed_days': 0,
-                'revival': 0,
-                'buffer': 0,
-                'probation': False,
-                'ping': False,  # Enable pings by default for self-joining users
-                'duels_won': 0,
-                'duels_lost': 0,
-                'in_challenges': False,
-                'challenge_participations': 0,
-                'challenge_completions': 0,
-                'challenge_streak': 0,
-                'challenge_submissions': 0,
-            }
+            shared.tracked_users[user.id] = shared.get_default_user_values(username=user.name, user_nickname=user_nickname)
         msg = "🎨 Welcome back! Your stats have been restored." if restored else "🎨 Welcome to daily art tracking!"
         await interaction.response.send_message(f"{msg} {user_nickname}, you're now tracked for daily submissions and duels.", ephemeral=True)
     else:

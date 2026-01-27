@@ -22,33 +22,27 @@ from shared import bot, logger, save_data_task
 def reset_user_stats():
     """Reset all user stats for a new season while preserving core identity info"""
     for user in shared.tracked_users.values():
-        # Keep these fields (user identity and preferences)
+        # Keep these fields (user identity, preferences and Challenge stats)
         username = user['username']
         user_nickname = user['user_nickname'] 
         ping = user['ping']
+        in_challenges = user['in_challenges']
+        challenge_participations = user['challenge_participations']
+        challenge_completions = user['challenge_completions']
+        challenge_streak = user['challenge_streak']
+        challenge_submissions = user['challenge_submissions']
         
         # Reset all stats to starting values
-        user.update({
-            'username': username,
-            'user_nickname': user_nickname,
-            'submission': "",
-            'parole_days': 0,
-            'deceased': False,
-            'deceased_days': 0,
-            'missing_days': 0,
-            'consecutive_missed_days': 0,
-            'revival': 0,
-            'buffer': 0,
-            'probation': False,
-            'ping': ping,
-            'duels_won': 0,
-            'duels_lost': 0,
-            'in_challenges': False,
-            'challenge_participations': 0,
-            'challenge_completions': 0,
-            'challenge_streak': 0,
-            'challenge_submissions': 0,
-        })
+        user.update(shared.get_default_user_values(
+            username=username,
+            user_nickname=user_nickname,
+            ping=ping,
+            in_challenges=in_challenges,
+            challenge_participations=challenge_participations,
+            challenge_completions=challenge_completions,
+            challenge_streak=challenge_streak,
+            challenge_submissions=challenge_submissions
+        ))
     
     logger.info(f"Reset stats for {len(shared.tracked_users)} users for new season")
     print(f"✅ Reset stats for {len(shared.tracked_users)} users for new season")
@@ -118,27 +112,8 @@ async def on_message_daily(message):
                 # Automatically add user to tracking if they have the "Dailies Challenger" role
                 user_nickname = member.nick if member and member.nick else message.author.name
                 
-                shared.tracked_users[message.author.id] = {
-                    'username': message.author.name,
-                    'user_nickname': user_nickname,
-                    'submission': "",
-                    'parole_days': 0,
-                    'deceased': False,
-                    'deceased_days': 0,
-                    'missing_days': 0,
-                    'consecutive_missed_days': 0,
-                    'revival': 0,
-                    'buffer': 0,
-                    'probation': False,
-                    'ping': False,  
-                    'duels_won': 0,
-                    'duels_lost': 0,
-                    'in_challenges': False,
-                    'challenge_participations': 0,
-                    'challenge_completions': 0,
-                    'challenge_streak': 0,
-                    'challenge_submissions': 0,
-                }
+
+                shared.tracked_users[message.author.id] = shared.get_default_user_values(username = message.author.name, user_nickname=user_nickname)
 
                 print(f"🎯 Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
                 logger.info(f"Auto-tracked {message.author.name} due to 'Dailies Challenger' role")

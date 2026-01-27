@@ -83,7 +83,6 @@ challenge_theme = ""
 challenge_number = 1
 challenge_threshold = 7
 
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -257,3 +256,45 @@ def format_username(username):
 def get_submission_link(id: int) -> str:
     return f"https://discord.com/channels/{guild_id}/{tracked_users[id]['submission']}" if id in tracked_users and tracked_users[id]['submission'] else 'None'
     
+def get_default_user_values(
+    username: str = "",
+    user_nickname: str = "",
+    submission: str = "",
+    parole_days: int = 0,
+    deceased: bool = False,
+    deceased_days: int = 0,
+    missing_days: int = 0,
+    consecutive_missed_days: int = 0,
+    revival: int = 0,
+    buffer: int = 0,
+    probation: bool = False,
+    ping: bool = False,
+    duels_won: int = 0,
+    duels_lost: int = 0,
+    in_challenges: bool = False,
+    challenge_participations: int = 0,
+    challenge_completions: int = 0,
+    challenge_streak: int = 0,
+    challenge_submissions: int = 0,
+):
+    return {
+        "username": username,
+        "user_nickname": user_nickname,
+        "submission": submission,
+        "parole_days": parole_days,
+        "deceased": deceased,
+        "deceased_days": deceased_days,
+        "missing_days": missing_days,
+        "consecutive_missed_days": consecutive_missed_days,
+        "revival": revival,
+        "buffer": buffer,
+        "probation": probation,
+        "ping": ping,
+        "duels_won": duels_won,
+        "duels_lost": duels_lost,
+        "in_challenges": in_challenges,
+        "challenge_participations": challenge_participations,
+        "challenge_completions": challenge_completions,
+        "challenge_streak": challenge_streak,
+        "challenge_submissions": challenge_submissions,
+    }
