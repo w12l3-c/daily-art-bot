@@ -13,7 +13,7 @@ import random
 import forced_events
 from duel import update_duel_progress, get_duel_rankings, get_duel_data
 from chain import process_chain_submission, get_chain_data
-from challenge import end_challenge
+from challenge import end_challenge, is_challenge_active
 import asyncio
 
 import shared
@@ -142,7 +142,7 @@ async def on_message_daily(message):
                 random.seed()
                 should_yell_at_zak = message.author.id == 472930608734142464 and random.random() * 10 < 1
                 if should_yell_at_zak:
-                    await message.channel.send(f"<@{message.author.id}> LOCK IN")
+                    await message.channel.send(f"<@{message.author.id}> kekekekekekekeke")
                 elif user_data['submission']:
                     # User already submitted daily art, count this as buffer
                     user_data['buffer'] = user_data.get('buffer', 0) + 1
@@ -152,7 +152,7 @@ async def on_message_daily(message):
                 else:
                     # First daily submission
                     user_data['submission'] = f"{message.channel.id}/{message.id}"  # Mark as official art submission
-                    if user_data["in_challenges"]:
+                    if user_data["in_challenges"] and is_challenge_active():
                         print(f"✅ {message.author.name} completed their challenge.")
                         logger.info(f"{message.author.name} completed their challenge.")
                         await message.channel.send(f"{message.author.display_name}, you have completed your challenge today!")
@@ -464,7 +464,7 @@ async def send_daily_art_message():
             message += "Completed: " + ", ".join(
                 list(
                     map(
-                        lambda user: user["user_nickname"],
+                        lambda user: shared.format_username(user["user_nickname"]),
                         filter(
                             lambda user: user["in_challenges"] and user["challenge_submissions"] >= shared.challenge_threshold,
                             shared.tracked_users.values()
@@ -476,7 +476,7 @@ async def send_daily_art_message():
             message += "\n\nFailed: " + ", ".join(
                 list(
                     map(
-                        lambda user: user["user_nickname"],
+                        lambda user: shared.format_username(user["user_nickname"]),
                         filter(
                             lambda user: user["in_challenges"] and user["challenge_submissions"] < shared.challenge_threshold,
                             shared.tracked_users.values()
@@ -485,7 +485,7 @@ async def send_daily_art_message():
                 )
             )
 
-            message += "\n\nTill next time!"
+            message += "\n\nGuys you gotta do #daily for it to count. Come on"
 
             if channel:
                 await channel.send(message)    
