@@ -233,7 +233,8 @@ async def send_daily_art_message():
             print(f"Day {shared.current_day} has ended!")
             logger.info(f"Day {shared.current_day} has ended!")
             shared.current_day += 1
-            shared.challenge_day += 1
+            if is_challenge_active():
+                shared.challenge_day += 1
             
         else:
             print("No tracked users - pausing season progression")

@@ -9,7 +9,7 @@ import shared
 from shared import bot, logger, save_data_task
 
 def is_challenge_active() -> bool:
-    return shared.challenge_day != 0
+    return shared.challenge_day != 0 or shared.challenge_theme == ""
 
 
 async def end_challenge():
