@@ -417,7 +417,7 @@ async def value_autocomplete(
 @bot.tree.command(name="edit_user", description="Edit a user's attribute.")
 @app_commands.describe(user="Select a user", attribute="Attribute to change", value="New value")
 @app_commands.autocomplete(attribute=attribute_autocomplete, value=value_autocomplete)
-async def edit_user(interaction: discord.Interaction, user: discord.User, attribute: str, value: str):
+async def edit_user(interaction: discord.Interaction, user: discord.User, attribute: str, value: str = ""):
     # Check if user has admin permissions or mod role
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
