@@ -6,6 +6,7 @@ This file contains all global constants/variables/functions used by other script
 import discord
 from discord.ext import commands, tasks
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import os
 import aiohttp
 import json
@@ -70,7 +71,7 @@ WCW_WARDENS = [516344918566764594, 414612223273598986]
 MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, comparison is case-insensitive
 
 # Configurable mod IDs
-MOD_IDS = [516344918566764594]
+MOD_IDS = [516344918566764594, 666772080162766910]
 
 # Challenge tracking values
 # data will be stored in backup.json
@@ -82,7 +83,6 @@ CHALLENGE_MODS = [
 challenge_theme = ""
 challenge_number = 1
 challenge_threshold = 7
-
 
 # Configure logging
 logging.basicConfig(
@@ -96,21 +96,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def has_admin_or_mod_permissions(interaction: discord.Interaction) -> bool:
+def has_admin_or_mod_permissions(param) -> bool:
+    user = None
+    if isinstance(param, discord.Interaction):
+        user = param.user
+    elif isinstance(param, discord.User):
+        user = param
+    else:
+        return False
+    
+
     """Check if user has administrator permissions or mod role"""
     # Check for administrator permissions
-    if interaction.user.guild_permissions.administrator:
+    if user.guild_permissions.administrator:
         return True
     
     # Check for mod role (case-insensitive)
-    if hasattr(interaction.user, 'roles'):
+    if hasattr(user, 'roles'):
         mod_roles_lower = [role.lower() for role in MOD_ROLE_NAME]
-        for role in interaction.user.roles:
+        for role in user.roles:
             if role.name.lower() in mod_roles_lower:
                 return True
             
     # Check for IDs
-    if interaction.user.id in MOD_IDS:
+    if user.id in MOD_IDS:
         return True
     
     return False
@@ -236,8 +245,8 @@ async def save_data_task():
     with open(SAVED_DATA_PATH, "w") as f:
         json.dump(data, f, indent=4)
     
-    print(f"✅ Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"Data saved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"✅ Data saved at {now_et().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Data saved at {now_et().strftime('%Y-%m-%d %H:%M:%S')}")
 
 def format_username(username):
     # escapes all special formatting characters
@@ -257,3 +266,49 @@ def format_username(username):
 def get_submission_link(id: int) -> str:
     return f"https://discord.com/channels/{guild_id}/{tracked_users[id]['submission']}" if id in tracked_users and tracked_users[id]['submission'] else 'None'
     
+def get_default_user_values(
+    username: str = "",
+    user_nickname: str = "",
+    submission: str = "",
+    parole_days: int = 0,
+    deceased: bool = False,
+    deceased_days: int = 0,
+    missing_days: int = 0,
+    consecutive_missed_days: int = 0,
+    revival: int = 0,
+    buffer: int = 0,
+    probation: bool = False,
+    ping: bool = False,
+    duels_won: int = 0,
+    duels_lost: int = 0,
+    in_challenges: bool = False,
+    challenge_participations: int = 0,
+    challenge_completions: int = 0,
+    challenge_streak: int = 0,
+    challenge_submissions: int = 0,
+):
+    return {
+        "username": username,
+        "user_nickname": user_nickname,
+        "submission": submission,
+        "parole_days": parole_days,
+        "deceased": deceased,
+        "deceased_days": deceased_days,
+        "missing_days": missing_days,
+        "consecutive_missed_days": consecutive_missed_days,
+        "revival": revival,
+        "buffer": buffer,
+        "probation": probation,
+        "ping": ping,
+        "duels_won": duels_won,
+        "duels_lost": duels_lost,
+        "in_challenges": in_challenges,
+        "challenge_participations": challenge_participations,
+        "challenge_completions": challenge_completions,
+        "challenge_streak": challenge_streak,
+        "challenge_submissions": challenge_submissions,
+    }
+
+
+def now_et():
+    return datetime.now(ZoneInfo("America/Toronto"))

@@ -13,7 +13,7 @@ import random
 import forced_events
 from duel import update_duel_progress, get_duel_rankings, get_duel_data
 from chain import process_chain_submission, get_chain_data
-from challenge import end_challenge
+from challenge import end_challenge, is_challenge_active
 import asyncio
 
 import shared
@@ -22,33 +22,27 @@ from shared import bot, logger, save_data_task
 def reset_user_stats():
     """Reset all user stats for a new season while preserving core identity info"""
     for user in shared.tracked_users.values():
-        # Keep these fields (user identity and preferences)
+        # Keep these fields (user identity, preferences and Challenge stats)
         username = user['username']
         user_nickname = user['user_nickname'] 
         ping = user['ping']
+        in_challenges = user['in_challenges']
+        challenge_participations = user['challenge_participations']
+        challenge_completions = user['challenge_completions']
+        challenge_streak = user['challenge_streak']
+        challenge_submissions = user['challenge_submissions']
         
         # Reset all stats to starting values
-        user.update({
-            'username': username,
-            'user_nickname': user_nickname,
-            'submission': "",
-            'parole_days': 0,
-            'deceased': False,
-            'deceased_days': 0,
-            'missing_days': 0,
-            'consecutive_missed_days': 0,
-            'revival': 0,
-            'buffer': 0,
-            'probation': False,
-            'ping': ping,
-            'duels_won': 0,
-            'duels_lost': 0,
-            'in_challenges': False,
-            'challenge_participations': 0,
-            'challenge_completions': 0,
-            'challenge_streak': 0,
-            'challenge_submissions': 0,
-        })
+        user.update(shared.get_default_user_values(
+            username=username,
+            user_nickname=user_nickname,
+            ping=ping,
+            in_challenges=in_challenges,
+            challenge_participations=challenge_participations,
+            challenge_completions=challenge_completions,
+            challenge_streak=challenge_streak,
+            challenge_submissions=challenge_submissions
+        ))
     
     logger.info(f"Reset stats for {len(shared.tracked_users)} users for new season")
     print(f"✅ Reset stats for {len(shared.tracked_users)} users for new season")
@@ -86,8 +80,13 @@ async def on_message_daily(message):
     # Check referenced messages (replies/forwards) safely 
     if not has_media and message.reference is not None and isinstance(message.reference.resolved, discord.Message):
         # Check if it's a self-reply with media
-        if message.reference.resolved.author == message.author and message_has_media(message.reference.resolved):
+        if message_has_media(message.reference.resolved) and (message.reference.resolved.author == message.author or message.author in shared.MOD_IDS):
             has_media = True
+
+            # Allows daily bot admins to add dailies for others
+            if message.author in shared.MOD_IDS:
+                message = message.reference.resolved
+
         else:
             # Check forwarded message snapshots safely
             try:
@@ -118,27 +117,8 @@ async def on_message_daily(message):
                 # Automatically add user to tracking if they have the "Dailies Challenger" role
                 user_nickname = member.nick if member and member.nick else message.author.name
                 
-                shared.tracked_users[message.author.id] = {
-                    'username': message.author.name,
-                    'user_nickname': user_nickname,
-                    'submission': "",
-                    'parole_days': 0,
-                    'deceased': False,
-                    'deceased_days': 0,
-                    'missing_days': 0,
-                    'consecutive_missed_days': 0,
-                    'revival': 0,
-                    'buffer': 0,
-                    'probation': False,
-                    'ping': False,  
-                    'duels_won': 0,
-                    'duels_lost': 0,
-                    'in_challenges': False,
-                    'challenge_participations': 0,
-                    'challenge_completions': 0,
-                    'challenge_streak': 0,
-                    'challenge_submissions': 0,
-                }
+
+                shared.tracked_users[message.author.id] = shared.get_default_user_values(username = message.author.name, user_nickname=user_nickname)
 
                 print(f"🎯 Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
                 logger.info(f"Auto-tracked {message.author.name} due to 'Dailies Challenger' role")
@@ -162,7 +142,7 @@ async def on_message_daily(message):
                 random.seed()
                 should_yell_at_zak = message.author.id == 472930608734142464 and random.random() * 10 < 1
                 if should_yell_at_zak:
-                    await message.channel.send(f"<@{message.author.id}> LOCK IN")
+                    await message.channel.send(f"<@{message.author.id}> kekekekekekekeke")
                 elif user_data['submission']:
                     # User already submitted daily art, count this as buffer
                     user_data['buffer'] = user_data.get('buffer', 0) + 1
@@ -172,7 +152,7 @@ async def on_message_daily(message):
                 else:
                     # First daily submission
                     user_data['submission'] = f"{message.channel.id}/{message.id}"  # Mark as official art submission
-                    if user_data["in_challenges"]:
+                    if user_data["in_challenges"] and is_challenge_active():
                         print(f"✅ {message.author.name} completed their challenge.")
                         logger.info(f"{message.author.name} completed their challenge.")
                         await message.channel.send(f"{message.author.display_name}, you have completed your challenge today!")
@@ -224,21 +204,17 @@ async def on_message_daily(message):
 
     
 # Edit the seconds 
-@tasks.loop(minutes=30)  # Save data every 8 hours
+@tasks.loop(minutes=1)
 async def send_daily_art_message():
-    message = build_reminder_message(3)
-
-    # Daily reset logic at 12:30 AM EST (4:30 AM UTC) - only run once per day
-    now = datetime.now()   
-    print(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
-    logger.info(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour}, Minute: {now.minute})")
+    now = shared.now_et()   
+    print(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
+    logger.info(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
     
-    # EST is UTC-4, so 12:15-12:45 AM EST = 4:15-4:45 AM UTC  
-    # 30-minute window centered around 12:30 AM EST - ONLY ADVANCE DAY (no message sent)
     logger.info(forced_events.forced_daily)
-    logger.info(f"Daily reset condition: {(now.hour == 5 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day) or forced_events.forced_daily}")
     
-    if (now.hour == 5 and 15 <= now.minute < 45 and shared.last_daily_message_day != shared.current_day) or forced_events.forced_daily:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+    if (now.hour == 0 and now.minute <= 1 and shared.last_daily_message_day != shared.current_day) or forced_events.forced_daily:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+        message = build_reminder_message(3)
+        
         logger.info("Daily reset window reached - advancing day")
         shared.last_daily_message_day = shared.current_day
         
@@ -248,8 +224,8 @@ async def send_daily_art_message():
         # Only send daily message and advance day if there are tracked users
         if shared.tracked_users:
             if channel:
-                print("Sending daily art message - 12:30 AM EST...")
-                logger.info("Sending daily art message - 12:30 AM EST...")
+                print("Sending daily art message - 12:00 AM ET...")
+                logger.info("Sending daily art message - 12:00 AM ET...")
                 await channel.send(message)
             else:
                 logger.error(f"Could not send daily message - announcement channel {shared.announcement_channel} not found")
@@ -488,7 +464,7 @@ async def send_daily_art_message():
             message += "Completed: " + ", ".join(
                 list(
                     map(
-                        lambda user: user["user_nickname"],
+                        lambda user: shared.format_username(user["user_nickname"]),
                         filter(
                             lambda user: user["in_challenges"] and user["challenge_submissions"] >= shared.challenge_threshold,
                             shared.tracked_users.values()
@@ -500,7 +476,7 @@ async def send_daily_art_message():
             message += "\n\nFailed: " + ", ".join(
                 list(
                     map(
-                        lambda user: user["user_nickname"],
+                        lambda user: shared.format_username(user["user_nickname"]),
                         filter(
                             lambda user: user["in_challenges"] and user["challenge_submissions"] < shared.challenge_threshold,
                             shared.tracked_users.values()
@@ -509,7 +485,7 @@ async def send_daily_art_message():
                 )
             )
 
-            message += "\n\nTill next time!"
+            message += "\n\nGuys you gotta do #daily for it to count. Come on"
 
             if channel:
                 await channel.send(message)    
@@ -542,7 +518,7 @@ def build_reminder_message(num = 1):
             message += "  •  "
         elif i != 0:
             message += "\n"
-        message += f"{shared.format_username(user['user_nickname'])} {' :happymiku:' if user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if user['in_challenges'] else ''}"
     
     message += "\n\n**⛓️ Jailed:**\n"
     # message += "🧱"*20 + "\n"
@@ -556,14 +532,14 @@ def build_reminder_message(num = 1):
             message += "  •  "
         elif i != 0:
             message += "\n"
-        message += f"{shared.format_username(user['user_nickname'])} {' :happymiku:' if user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if user['in_challenges'] else ''}"
 
     message += "\n\n**🪦 Deceased:**\n"
 
     for i, user in enumerate(deceased_users):
         if i % USERS_PER_LINE != 0:
             message += "  •  "
-        message += f"{shared.format_username(user['user_nickname'])} {' :happymiku:' if user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if user['in_challenges'] else ''}"
         if i % USERS_PER_LINE == USERS_PER_LINE - 1:
             message += "\n"
     
@@ -599,26 +575,21 @@ def build_reminder_message(num = 1):
     
     return message
 
-@tasks.loop(minutes=30)  # Check every 30 minutes to catch both warning times
+@tasks.loop(minutes=1)  # Check every 30 minutes to catch both warning times
 async def ping_jailed_users():
-    now = datetime.now()
+    now = shared.now_et()
     # Add detailed time logging for debugging
-    print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
-    logger.info(f"ping_jailed_users check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC (Hour: {now.hour})")
+    print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} ET (Hour: {now.hour})")
+    logger.info(f"ping_jailed_users check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} ET (Hour: {now.hour})")
     
     message = ""
-    
-    # EST is UTC-5 in standard time (winter), UTC-4 in daylight time (summer)
-    # For now, using UTC-4 (EDT) - 10:00-10:30 PM EST = 2:00-2:30 AM UTC, 11:00-11:30 PM EST = 3:00-3:30 AM UTC
-    
-    # Send daily art message WITH warnings at 10-10:30 PM EST and 11-11:30 PM EST
-    if now.hour == 3 and now.minute < 30 and shared.last_warning_1_day != shared.current_day:  # 10:00-10:30 PM EST (2:00-2:30 AM UTC)
+    if now.hour == 22 and now.minute <= 1  and shared.last_warning_1_day != shared.current_day: 
         print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         shared.last_warning_1_day = shared.current_day
         message = build_reminder_message(1)
         
-    elif now.hour == 4 and now.minute < 30 and shared.last_warning_2_day != shared.current_day:  # 11:00-11:30 PM EST (3:00-3:30 AM UTC)
+    elif now.hour == 23 and now.minute <= 1 and shared.last_warning_2_day != shared.current_day: 
         print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         shared.last_warning_2_day = shared.current_day
