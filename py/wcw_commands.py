@@ -46,6 +46,9 @@ async def wcw_edit_user(
         await interaction.response.send_message(f"{user.display_name} is not in WCW!", ephemeral=True)
         return
     
+    if submission == "None":
+        submission = ""
+
     await wcw.edit_user(
         user=user,
         status=status,
@@ -120,6 +123,40 @@ async def wcw_excuse(interaction: discord.Interaction, user: discord.User):
 
 
 
+# DEBUG
+@bot.tree.command(name="wcw_debug", description="E")
+@app_commands.describe(debug="int")
+async def wcw_debug(interaction: discord.Interaction, debug: int = 0):
+    if not wcw.has_perms(interaction.user):
+        await interaction.response.send_message(f"You must be mod or warden to use this command!", ephemeral=True)
+        return
+
+    await interaction.response.send_message(f"Sending message of id {debug}...", ephemeral=True)
+    await wcw.send_announcement_message(debug=debug) 
+    
+
+@bot.tree.command(name="wcw_edit_week", description="Edit the week number")
+@app_commands.describe(week_number="int")
+async def wcw_debug(interaction: discord.Interaction, week_number: int = 0):
+    if not wcw.has_perms(interaction.user):
+        await interaction.response.send_message(f"You must be mod or warden to use this command!", ephemeral=True)
+        return
+    
+    if shared.wcw_current_week == shared.wcw_last_reminder_1_week:
+        shared.wcw_last_reminder_1_week = week_number
+
+    if shared.wcw_current_week == shared.wcw_last_reminder_2_week:
+        shared.wcw_last_reminder_2_week = week_number
+
+    if shared.wcw_current_week == shared.wcw_last_message_week:
+        shared.wcw_last_message_week = week_number
+
+    shared.wcw_current_week = week_number
+
+    await interaction.response.send_message(f"Week number has been updated to {week_number}!")
+    await wcw.save_data()
+
+
 # ------------------------------------------------ Non-mod commands ------------------------------------------------
 
 
@@ -190,11 +227,11 @@ async def wcw_find_submissions(interaction: discord.Interaction, user: discord.U
             await interaction.response.send_message("This user is not in WCW!", ephemeral=True)
             return
 
-        message += f"{shared.format_username(shared.wcw_tracked_users[user.id]['user_nickname'])}: " + shared.get_submission_link(user.id, wcw=True)
+        message += f"{shared.format_username(shared.wcw_tracked_users[user.id]['user_nickname'])}: " + shared.get_submission_link(user.id, wcw=True) + f" ({shared.wcw_tracked_users[user.id]['submission_words']} words)"
     else:
         for user_id in shared.wcw_tracked_users.keys():
             if shared.wcw_tracked_users[user_id]['active']:
-                message += f"{shared.format_username(shared.wcw_tracked_users[user_id]['user_nickname'])}: " + shared.get_submission_link(user_id, wcw=True)
+                message += f"{shared.format_username(shared.wcw_tracked_users[user_id]['user_nickname'])}: " + shared.get_submission_link(user_id, wcw=True)  + f" ({shared.wcw_tracked_users[user.id]['submission_words']} words)"
                 message += "\n"
     
     await interaction.response.send_message(message, ephemeral=True)
@@ -226,11 +263,3 @@ async def wcw_set_goal(interaction: discord.Interaction, user: discord.User = No
 
     await interaction.response.send_message(message, ephemeral=True)
 
-
-# DEBUG
-@bot.tree.command(name="wcw_debug", description="E")
-@app_commands.describe(debug="int")
-async def wcw_debug(interaction: discord.Interaction, debug: int = 0):
-    await interaction.response.send_message(f"Sending message of id {debug}...", ephemeral=True)
-    await wcw.send_announcement_message(debug=debug) 
-    

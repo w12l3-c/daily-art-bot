@@ -176,6 +176,7 @@ async def on_message_wcw(message: discord.Message):
     user_data = shared.wcw_tracked_users[message.author.id]
 
     match = re.search(r'#wcw: ?(\d+)', message.content.lower())
+
     if not match:
         await message.channel.send(f"Please submit using the format \"#wcw:<word count>\"! For example, \"#wcw:500\"")
         return
@@ -190,10 +191,10 @@ async def on_message_wcw(message: discord.Message):
         submission += str(message.id)
 
     previous_submission = user_data['submission']
-    await edit_user(message.author, submission=submission, submission_words=word_count, status="submitted")
+    await edit_user(message.author, submission=submission, submission_words=user_data['submission_words'] + word_count, status="submitted")
 
     if previous_submission:
-        await message.channel.send(f"{user_data['user_nickname']}, your WCW submission for this week has been counted! (Your previous submission was overridden)")
+        await message.channel.send(f"{user_data['user_nickname']}, your WCW submission word count for this week has been updated!")
     else:
         await message.channel.send(f"{user_data['user_nickname']}, your WCW submission for this week has been counted!")
 
