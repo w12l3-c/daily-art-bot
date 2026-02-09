@@ -6,9 +6,11 @@ This file contains implementations of Discord command functions
 import discord
 from discord import app_commands
 import os
+import io
 from daily import reset_user_stats, build_reminder_message
 import shared
 from shared import bot, logger
+from collections import deque
 
 @bot.tree.command(name="add_channel", description="Add a channel or thread for tracking art submissions.")
 @app_commands.describe(channel="Select or mention a channel or thread")
@@ -759,5 +761,66 @@ async def debug(interaction: discord.Interaction, param: str):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
 
-        
+
+
+@bot.tree.command(name="get_log", description="Get last 10k lines of log file")
+@app_commands.describe(ephemeral="Send ephemerally (sent by DM if False)")
+async def debug(interaction: discord.Interaction, ephemeral: bool = False):
+    if not shared.has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
+
+    lines = 10000
+
+    if not os.path.exists(shared.LOG_PATH):
+        await interaction.response.send_message(f"Log file not found: `{shared.LOG_PATH}`", ephemeral=True)
+        return
+
+    # Read last N lines efficiently (streaming; no full-file read into memory)
+    try:
+        last_lines = deque(maxlen=lines)
+        with open(shared.LOG_PATH, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                last_lines.append(line)
+        content = "".join(last_lines)
+    except Exception as e:
+        await interaction.response.send_message(f"Failed to read log: `{type(e).__name__}: {e}`", ephemeral=True)
+        return
+
+    # Send as a file (Discord messages have length limits; file is safer)
+    # Use an in-memory buffer so you don’t need to write a temp file
+    data = content.encode("utf-8", errors="replace")
+    fp = io.BytesIO(data)
+    fp.seek(0)
+
+    filename = f"bot_{shared.now_et()}.log"
+    discord_file = discord.File(fp=fp, filename=filename)
+
+    if ephemeral:
+        await interaction.response.send_message(
+            f"Last {lines} lines from `{shared.LOG_PATH}`:",
+            file=discord_file,
+            ephemeral=True
+        )
+        return
+
+    # DM delivery
+    await interaction.response.send_message("Sending log via DM…", ephemeral=True)
+    try:
+        await interaction.user.send(
+            content=f"Last {lines} lines from `{shared.LOG_PATH}`:",
+            file=discord_file
+        )
+    except discord.Forbidden:
+        # User has DMs disabled
+        await interaction.followup.send(
+            "Could not DM you (DMs disabled). Try ephemerally instead.",
+            ephemeral=True
+        )
+    except Exception as e:
+        await interaction.followup.send(
+            f"Failed to DM log: `{type(e).__name__}: {e}`",
+            ephemeral=True
+        )
+
 

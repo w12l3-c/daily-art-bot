@@ -159,7 +159,7 @@ async def on_message_daily(message):
                     else:
                         print(f"✅ {message.author.name} submitted official art.")
                         logger.info(f"{message.author.name} submitted official art.")
-                        await message.channel.send(f"🎨 {message.author.display_name}, your art has been recorded for today!")
+                        await message.channel.send(f"🎨 {message.author.display_name}, your art has been recorded for today! (Submission #{user_data['parole_days'] + 1})")
                         
                 
                 # Update duel progress for this user (regardless of buffer or daily)
@@ -207,12 +207,12 @@ async def on_message_daily(message):
 @tasks.loop(minutes=1)
 async def send_daily_art_message():
     now = shared.now_et()   
-    print(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
-    logger.info(f"Daily message check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
-    
-    logger.info(forced_events.forced_daily)
     
     if (now.hour == 0 and now.minute <= 1 and shared.last_daily_message_day != shared.current_day) or forced_events.forced_daily:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+        print(f"Daily message check SUCCESS - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
+        logger.info(f"Daily message check SUCCESS - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
+        logger.info(f"Forced event: {forced_events.forced_daily}")
+        
         message = build_reminder_message(3)
         
         logger.info("Daily reset window reached - advancing day")
@@ -232,9 +232,19 @@ async def send_daily_art_message():
 
             print(f"Day {shared.current_day} has ended!")
             logger.info(f"Day {shared.current_day} has ended!")
+
             shared.current_day += 1
             if is_challenge_active():
+                print(f"Challenge {shared.challenge_day} has ended!")
+                logger.info(f"Challenge {shared.challenge_day} has ended!")
+
                 shared.challenge_day += 1
+
+                print(f"Challenge day is now {shared.challenge_day}")
+                logger.info(f"Challenge {shared.challenge_day}")
+
+            print(f"Day is now {shared.current_day}")
+            logger.info(f"Day is now {shared.current_day}")
             
         else:
             print("No tracked users - pausing season progression")
@@ -581,7 +591,6 @@ async def ping_jailed_users():
     now = shared.now_et()
     # Add detailed time logging for debugging
     print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} ET (Hour: {now.hour})")
-    logger.info(f"ping_jailed_users check - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} ET (Hour: {now.hour})")
     
     message = ""
     if now.hour == 22 and now.minute <= 1  and shared.last_warning_1_day != shared.current_day: 

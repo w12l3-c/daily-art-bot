@@ -30,6 +30,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 PROJECT_ROOT_PATH = Path(__file__).resolve().parent.parent
 
+LOG_PATH = PROJECT_ROOT_PATH / "bot.log"
+
 # Server values
 guild_id = 1468981682169450703 # 1359790250729148466
 
