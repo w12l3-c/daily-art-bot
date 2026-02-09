@@ -84,7 +84,7 @@ async def on_message_daily(message):
             has_media = True
 
             # Allows daily bot admins to add dailies for others
-            if message.author in shared.MOD_IDS:
+            if message.author.id in shared.MOD_IDS or shared.has_admin_or_mod_permissions(message):
                 message = message.reference.resolved
 
         else:
@@ -402,7 +402,7 @@ async def send_daily_art_message():
             if channel:
                 await channel.send(season_message)
             else:
-                logger.error(f"Could not send new season message - announcement channel {shared.announcement_channel} not found")
+                logger.error(f"Could not send new season message -  announcement channel {shared.announcement_channel} not found")
 
         for user in shared.tracked_users.values():
             # Initialize consecutive_missed_days if it doesn't exist (for existing users)
