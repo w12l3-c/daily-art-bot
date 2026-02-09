@@ -1,0 +1,47 @@
+{
+    "current_week": 21,
+    "announcement_channel": 1468981683536527604,
+    "allowed_channels": [
+        1419486211948413098,
+        1440845080742199426,
+        1441228179434897479,
+        1468981683536527604
+    ],
+    "last_message_week": 20,
+    "last_reminder_1_week": 21,
+    "last_reminder_2_week": 20,
+    "tracked_users": {
+        "516344918566764594": {
+            "username": "ry_z",
+            "user_nickname": "ry_z",
+            "status": "submitted",
+            "submission": "1468981683536527604/1469019935677354049",
+            "submissions": 4,
+            "active": true,
+            "total_word_count": 470,
+            "submission_words": 300,
+            "goal": "",
+            "weekly_streak": 1,
+            "weeks_submitted": 4,
+            "weeks_missed": 6,
+            "weeks_excused": 2,
+            "ping": true
+        },
+        "414612223273598986": {
+            "username": "deceasedenglishman",
+            "user_nickname": "deceasedenglishman",
+            "status": "submitted",
+            "submission": "1468981683536527604/1468987675943112819",
+            "submissions": 0,
+            "active": true,
+            "total_word_count": 0,
+            "submission_words": 300,
+            "goal": "30",
+            "weekly_streak": 0,
+            "weeks_submitted": 0,
+            "weeks_missed": 0,
+            "weeks_excused": 0,
+            "ping": false
+        }
+    }
+}
