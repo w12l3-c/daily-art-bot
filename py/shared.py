@@ -31,7 +31,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 PROJECT_ROOT_PATH = Path(__file__).resolve().parent.parent
 
 # Server values
-guild_id = 1359790250729148466
+guild_id = 1468981682169450703 # 1359790250729148466
 
 # Daily art tracking values
 allowed_channels = [1281049819342831636, 1440845080742199426]
@@ -57,13 +57,17 @@ time_debug = 30  # seconds
 time_deploy = 1 # hours
 
 # WCW tracking values
-wcw_allowed_channels = [1419486211948413098, 1440845080742199426]
-wcw_announcement_channel = 1419486211948413098
+wcw_allowed_channels = [1419486211948413098, 1440845080742199426, 1441228179434897479, 1468981683536527604]
+wcw_announcement_channel = 1468981683536527604 
 
 wcw_tracked_users = {}
 WCW_SAVED_DATA_PATH = PROJECT_ROOT_PATH / "wcw.json"
 wcw_current_week = 10
 wcw_tracked_users = {}
+
+wcw_last_message_week = 0
+wcw_last_reminder_1_week = 0
+wcw_last_reminder_2_week = 0
 
 WCW_WARDENS = [516344918566764594, 414612223273598986]
 
@@ -263,8 +267,11 @@ def format_username(username):
     return username
 
 
-def get_submission_link(id: int) -> str:
-    return f"https://discord.com/channels/{guild_id}/{tracked_users[id]['submission']}" if id in tracked_users and tracked_users[id]['submission'] else 'None'
+def get_submission_link(id: int, wcw: bool = False) -> str:
+    if wcw:
+        return f"https://discord.com/channels/{guild_id}/{wcw_tracked_users[id]['submission']}" if id in wcw_tracked_users and wcw_tracked_users[id]['submission'] else 'None'
+    else:
+        return f"https://discord.com/channels/{guild_id}/{tracked_users[id]['submission']}" if id in tracked_users and tracked_users[id]['submission'] else 'None'
     
 def get_default_user_values(
     username: str = "",

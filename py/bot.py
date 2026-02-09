@@ -16,6 +16,7 @@ import daily_commands
 import challenge
 import challenge_commands
 import wcw
+import wcw_commands
 import forced_events  # Import forced events to register debug commands
 
 def load_data():
@@ -86,10 +87,13 @@ def load_data():
         # load wcw json
         with open(shared.WCW_SAVED_DATA_PATH, "r") as f:
             data = json.load(f)
-            shared.wcw_current_week = data.get("current_week", shared.wcw_current_ween)
+            shared.wcw_current_week = data.get("current_week", shared.wcw_current_week)
             loaded_users = data.get("tracked_users", {})
             shared.wcw_announcement_channel = data.get("announcement_channel", shared.wcw_allowed_channels[0] if shared.wcw_allowed_channels else None)
-            
+            shared.wcw_last_message_week = data.get("last_message_week", shared.wcw_last_message_week)
+            shared.wcw_last_reminder_1_week = data.get("last_reminder_1_week", shared.wcw_last_reminder_1_week)
+            shared.wcw_last_reminder_2_week = data.get("last_reminder_2_week", shared.wcw_last_reminder_2_week)
+
             # Load allowed_channels if it exists, otherwise keep the current one
             loaded_allowed_channels = data.get("allowed_channels", shared.wcw_allowed_channels)
             if loaded_allowed_channels:
@@ -103,17 +107,9 @@ def load_data():
                     shared.wcw_tracked_users[user_id_int] = user_data
                 except ValueError:
                     logger.warning(f"Could not convert user ID '{user_id_str}' to integer")
-            
-            # Load duel data if it exists
-            duel_data = data.get("duel", None)
-            load_duel_data(duel_data)
-            
-            # Load chain data if it exists
-            chain_data = data.get("chain", None)
-            load_chain_data(chain_data)
                     
-            print(f"✅ WCW data loaded successfully! (Week {shared.wcw_current_day})")
-            logger.info(f"WCW data loaded successfully! (Week {shared.wcw_current_day})")
+            print(f"✅ WCW data loaded successfully! (Week {shared.wcw_current_week})")
+            logger.info(f"WCW data loaded successfully! (Week {shared.wcw_current_week})")
             logger.info(f"Loaded {len(shared.wcw_tracked_users)} users with IDs: {list(shared.wcw_tracked_users.keys())}")
             logger.info(f"WCW announcement channel set to: {shared.wcw_announcement_channel}")
             logger.info(f"WCW allowed channels: {shared.wcw_allowed_channels}")
@@ -180,7 +176,8 @@ async def on_message(message):
     
     if message.channel.id in shared.allowed_channels:
         await daily.on_message_daily(message)
-    elif message.channel.id in shared.wcw_allowed_channels:
+
+    if message.channel.id in shared.wcw_allowed_channels:
         await wcw.on_message_wcw(message)
     
     # Process other commands
