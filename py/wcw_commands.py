@@ -49,4 +49,4 @@ async def wcw_join(interaction: discord.Interaction, joining: bool, pretentious 
 @bot.tree.command(name="wcw_partake", description="Involve thyself in our weekly conference in which we congregate to share amongst ourselves the beauty of the written word")
 @app_commands.describe(membership="If you want to join")
 async def wcw_partake(interaction: discord.Interaction, membership: bool):
-    wcw_join(interaction, membership, True)
+    wcw_join(interaction, membership, True) 
