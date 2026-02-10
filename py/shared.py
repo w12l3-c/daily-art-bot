@@ -33,11 +33,11 @@ PROJECT_ROOT_PATH = Path(__file__).resolve().parent.parent
 LOG_PATH = PROJECT_ROOT_PATH / "bot.log"
 
 # Server values
-guild_id = 1468981682169450703 # 1359790250729148466
+guild_id = 748707282690244739
 
 # Daily art tracking values
-allowed_channels = [1281049819342831636, 1440845080742199426]
-announcement_channel = 1281049819342831636  # Default announcement channel
+allowed_channels = [1281049819342831636, 1440845080742199426, 1419517897134440520]
+announcement_channel = 1419517897134440520  # Default announcement channel
 
 tracked_users = {}
 archived_users = {}  # users who opted out but keep their stats for later rejoin
@@ -60,7 +60,7 @@ time_deploy = 1 # hours
 
 # WCW tracking values
 wcw_allowed_channels = [1419486211948413098, 1440845080742199426, 1441228179434897479, 1468981683536527604]
-wcw_announcement_channel = 1468981683536527604 
+wcw_announcement_channel = 1440845080742199426 
 
 wcw_tracked_users = {}
 WCW_SAVED_DATA_PATH = PROJECT_ROOT_PATH / "wcw.json"
