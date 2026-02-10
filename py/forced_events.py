@@ -161,11 +161,12 @@ async def force_warning_1(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     
     try:
-        message = daily.build_reminder_message(1)
+        messages = daily.build_reminder_message(1)
         channel = bot.get_channel(shared.announcement_channel)
         
         if channel:
-            await channel.send(message)
+            for message in messages:
+                await channel.send(message)
             shared.last_warning_1_day = shared.current_day
             await interaction.followup.send(
                 f"✅ **First warning message sent!**\n"
@@ -195,11 +196,12 @@ async def force_warning_2(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     
     try:
-        message = daily.build_reminder_message(2)
+        messages = daily.build_reminder_message(2)
         channel = bot.get_channel(shared.announcement_channel)
         
         if channel:
-            await channel.send(message)
+            for message in messages:
+                await channel.send(message)
             shared.last_warning_2_day = shared.current_day
             await interaction.followup.send(
                 f"✅ **Final warning message sent!**\n"

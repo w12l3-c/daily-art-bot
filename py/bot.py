@@ -31,7 +31,7 @@ def load_data():
             shared.season_theme = data.get("season_theme", shared.season_theme)
             loaded_users = data.get("tracked_users", {})
             loaded_archived = data.get("archived_users", {})
-            shared.announcement_channel = data.get("announcement_channel", shared.allowed_channels[0] if shared.allowed_channels else None)
+            shared.announcement_channel = data.get("announcement_channel", shared.allowed_channels[0] if shared.allowed_channels else shared.announcement_channel)
 
             shared.challenge_day = data.get("challenge_day", shared.challenge_day)
             shared.challenge_length = data.get("challenge_length", shared.challenge_length)

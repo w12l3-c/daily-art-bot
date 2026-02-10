@@ -213,7 +213,7 @@ async def send_daily_art_message():
         logger.info(f"Daily message check SUCCESS - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
         logger.info(f"Forced event: {forced_events.forced_daily}")
         
-        message = build_reminder_message(3)
+        messages = build_reminder_message(3)
         
         logger.info("Daily reset window reached - advancing day")
         shared.last_daily_message_day = shared.current_day
@@ -226,7 +226,8 @@ async def send_daily_art_message():
             if channel:
                 print("Sending daily art message - 12:00 AM ET...")
                 logger.info("Sending daily art message - 12:00 AM ET...")
-                await channel.send(message)
+                for message in messages:
+                    await channel.send(message)
             else:
                 logger.error(f"Could not send daily message - announcement channel {shared.announcement_channel} not found")
 
@@ -466,7 +467,7 @@ async def send_daily_art_message():
             user['submission'] = ""
         
         # End challenge logic
-        if shared.challenge_day > shared.challenge_length:
+        if is_challenge_active() and shared.challenge_day > shared.challenge_length:
             channel = bot.get_channel(shared.announcement_channel)
 
             # build message
@@ -516,6 +517,7 @@ async def send_daily_art_message():
 def build_reminder_message(num = 1):        
     # Build the daily art message inline
     USERS_PER_LINE = 4
+    messages = []
 
     users_not_sent = [u for u in shared.tracked_users.values() if not u['submission']]
     users_sent = [u for u in shared.tracked_users.values() if u['submission']]
@@ -529,9 +531,12 @@ def build_reminder_message(num = 1):
             message += "  •  "
         elif i != 0:
             message += "\n"
-        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'🌚' if is_challenge_active() and user['in_challenges'] else ''}"
     
-    message += "\n\n**⛓️ Jailed:**\n"
+    # split message here to avoid 2k character limit
+    messages.append(message)
+
+    message = "\n\n**⛓️ Jailed:**\n"
     # message += "🧱"*20 + "\n"
     
     # Filter jailed and deceased users
@@ -543,14 +548,14 @@ def build_reminder_message(num = 1):
             message += "  •  "
         elif i != 0:
             message += "\n"
-        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'🌚' if is_challenge_active() and user['in_challenges'] else ''}"
 
     message += "\n\n**🪦 Deceased:**\n"
 
     for i, user in enumerate(deceased_users):
         if i % USERS_PER_LINE != 0:
             message += "  •  "
-        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'🌚' if is_challenge_active() and user['in_challenges'] else ''}"
         if i % USERS_PER_LINE == USERS_PER_LINE - 1:
             message += "\n"
     
@@ -558,6 +563,10 @@ def build_reminder_message(num = 1):
         message += "\n\n🚨 **Daily Art Reminder!** 🚨\n"
         message += f"**You have roughly {3 - num} hour{'s' if num == 1 else ''} before the daily reset!** ⏰\n\n"
     
+    messages.append(message)
+    message = ""
+
+
     # Find users who need to submit
     ping_users = []
     for user_id, user in shared.tracked_users.items():
@@ -583,8 +592,11 @@ def build_reminder_message(num = 1):
             message += "**Excellent! All tracked users are safe for today! 🎨✅**"    
         else:
             message += "**Make sure to submit your art if you haven't already!**"
+
+    if message:
+        messages.append(message)
     
-    return message
+    return messages
 
 @tasks.loop(minutes=1)  # Check every 30 minutes to catch both warning times
 async def ping_jailed_users():
@@ -592,22 +604,23 @@ async def ping_jailed_users():
     # Add detailed time logging for debugging
     print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} ET (Hour: {now.hour})")
     
-    message = ""
+    messages = []
     if now.hour == 22 and now.minute <= 1  and shared.last_warning_1_day != shared.current_day: 
         print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         shared.last_warning_1_day = shared.current_day
-        message = build_reminder_message(1)
+        messages = build_reminder_message(1)
         
     elif now.hour == 23 and now.minute <= 1 and shared.last_warning_2_day != shared.current_day: 
         print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         shared.last_warning_2_day = shared.current_day
-        message = build_reminder_message(2)
+        messages = build_reminder_message(2)
     
-    if message:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
+    if messages:  # Only send if we have a message (10:30 PM or 11:30 PM EST)
         channel = bot.get_channel(shared.announcement_channel)
         if channel:
-            await channel.send(message)
+            for message in messages:
+                await channel.send(message)
         else:
             logger.error(f"Could not send warning message - announcement channel {shared.announcement_channel} not found")

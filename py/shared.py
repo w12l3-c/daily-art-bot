@@ -37,7 +37,7 @@ guild_id = 748707282690244739
 
 # Daily art tracking values
 allowed_channels = [1281049819342831636, 1440845080742199426, 1419517897134440520]
-announcement_channel = 1419517897134440520  # Default announcement channel
+announcement_channel = 1440845080742199426  # Default announcement channel
 
 tracked_users = {}
 archived_users = {}  # users who opted out but keep their stats for later rejoin
