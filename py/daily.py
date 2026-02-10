@@ -531,7 +531,7 @@ def build_reminder_message(num = 1):
             message += "  •  "
         elif i != 0:
             message += "\n"
-        message += f"{shared.format_username(user['user_nickname'])} {'🌚' if is_challenge_active() and user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if is_challenge_active() and user['in_challenges'] else ''}"
     
     # split message here to avoid 2k character limit
     messages.append(message)
@@ -548,14 +548,14 @@ def build_reminder_message(num = 1):
             message += "  •  "
         elif i != 0:
             message += "\n"
-        message += f"{shared.format_username(user['user_nickname'])} {'🌚' if is_challenge_active() and user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if is_challenge_active() and user['in_challenges'] else ''}"
 
     message += "\n\n**🪦 Deceased:**\n"
 
     for i, user in enumerate(deceased_users):
         if i % USERS_PER_LINE != 0:
             message += "  •  "
-        message += f"{shared.format_username(user['user_nickname'])} {'🌚' if is_challenge_active() and user['in_challenges'] else ''}"
+        message += f"{shared.format_username(user['user_nickname'])} {'<happymiku:1178130719646679061>' if is_challenge_active() and user['in_challenges'] else ''}"
         if i % USERS_PER_LINE == USERS_PER_LINE - 1:
             message += "\n"
     
