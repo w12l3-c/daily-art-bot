@@ -108,6 +108,8 @@ def has_admin_or_mod_permissions(param) -> bool:
         user = param.user
     elif isinstance(param, discord.User):
         user = param
+    elif isinstance(param, discord.Message):
+        user = param.author
     else:
         return False
     
