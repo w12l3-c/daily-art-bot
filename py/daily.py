@@ -216,7 +216,7 @@ async def send_daily_art_message():
         messages = build_reminder_message(3)
         
         logger.info("Daily reset window reached - advancing day")
-        shared.last_daily_message_day = shared.current_day
+        
         
         # Get channel for sending message
         channel = bot.get_channel(shared.announcement_channel)
@@ -506,7 +506,7 @@ async def send_daily_art_message():
             
             await end_challenge()
         
-
+        shared.last_daily_message_day = shared.current_day
         await save_data_task()
 
         
