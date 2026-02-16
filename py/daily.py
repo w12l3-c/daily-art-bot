@@ -208,7 +208,9 @@ async def on_message_daily(message):
 async def send_daily_art_message():
     now = shared.now_et()   
     
-    if (now.hour == 0 and now.minute <= 1 and shared.last_daily_message_day != shared.current_day) or forced_events.forced_daily:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+    if (now.hour == 0 and now.minute <= 1 and shared.last_daily_message_day != shared.now_et_day_str()) or forced_events.forced_daily:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+        shared.last_daily_message_day = shared.now_et_day_str()
+
         print(f"Daily message check SUCCESS - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
         logger.info(f"Daily message check SUCCESS - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
         logger.info(f"Forced event: {forced_events.forced_daily}")
@@ -506,7 +508,7 @@ async def send_daily_art_message():
             
             await end_challenge()
         
-        shared.last_daily_message_day = shared.current_day
+        
         await save_data_task()
 
         
@@ -605,16 +607,16 @@ async def ping_jailed_users():
     print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} ET (Hour: {now.hour})")
     
     messages = []
-    if now.hour == 22 and now.minute <= 1  and shared.last_warning_1_day != shared.current_day: 
+    if now.hour == 22 and now.minute <= 1  and shared.last_warning_1_day != shared.now_et_day_str(): 
         print("Sending daily art message + first warning - 10:00-10:30 PM EST...")
         logger.info("Sending daily art message + first warning - 10:00-10:30 PM EST...")
-        shared.last_warning_1_day = shared.current_day
+        shared.last_warning_1_day = shared.now_et_day_str()
         messages = build_reminder_message(1)
         
-    elif now.hour == 23 and now.minute <= 1 and shared.last_warning_2_day != shared.current_day: 
+    elif now.hour == 23 and now.minute <= 1 and shared.last_warning_2_day != shared.now_et_day_str(): 
         print("Sending daily art message + final warning - 11:00-11:30 PM EST...")
         logger.info("Sending daily art message + final warning - 11:00-11:30 PM EST...")
-        shared.last_warning_2_day = shared.current_day
+        shared.last_warning_2_day = shared.shared.now_et_day_str()
         messages = build_reminder_message(2)
     
     if messages:  # Only send if we have a message (10:30 PM or 11:30 PM EST)

@@ -50,9 +50,9 @@ SAVED_DATA_PATH = PROJECT_ROOT_PATH / "backup.json"
 BADGES_PATH = PROJECT_ROOT_PATH / "badges"
 
 # Track when messages were last sent to prevent duplicates
-last_daily_message_day = -1
-last_warning_1_day = -1
-last_warning_2_day = -1
+last_daily_message_day = ""
+last_warning_1_day = ""
+last_warning_2_day = ""
 
 
 time_debug = 30  # seconds
@@ -319,5 +319,9 @@ def get_default_user_values(
     }
 
 
-def now_et():
+def now_et() -> datetime:
     return datetime.now(ZoneInfo("America/Toronto"))
+
+# Returns a string of today's date (e.g. 2026-02-16)
+def now_et_day_str():
+    return now_et().strftime("%Y-%m-%d")
