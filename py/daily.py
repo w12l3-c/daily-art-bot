@@ -76,6 +76,8 @@ async def on_message_daily(message):
 
     # Check if the message has an image/video attachment, is a forwarded message with media, or is a reply to a message that has media
     has_media = message_has_media(message)
+
+    admin_submission = False # mods and admins can submit for others
     
     # Check referenced messages (replies/forwards) safely 
     if not has_media and message.reference is not None and isinstance(message.reference.resolved, discord.Message):
@@ -85,6 +87,7 @@ async def on_message_daily(message):
 
             # Allows daily bot admins to add dailies for others
             if message.author.id in shared.MOD_IDS or shared.has_admin_or_mod_permissions(message):
+                admin_submission = True
                 message = message.reference.resolved
 
         else:
@@ -136,7 +139,7 @@ async def on_message_daily(message):
                     user_data['user_nickname'] = current_nickname
                     logger.info(f"Updated nickname for {message.author.name}: '{old_nickname}' -> '{current_nickname}'")
             
-            if "#daily" in content_lower:
+            if "#daily" in content_lower or admin_submission:
 
                 # There's a 1/10 chance that Zak will get yelled at whenever submitting a daily
                 random.seed()
