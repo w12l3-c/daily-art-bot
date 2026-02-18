@@ -77,7 +77,7 @@ async def challenge_start(interaction: discord.Interaction, theme: str, threshol
     participants = list(filter(lambda user: user["in_challenges"], shared.tracked_users.values()))
 
     if len(participants) != 0:
-        message += f"We currently have **{len(participants)}** participant(s):\n" + ", ".join(list(map(lambda user: user["user_nickname"], participants)))
+        message += f"We currently have **{len(participants)}** participant(s):\n" + ", ".join(list(map(lambda user: shared.format_username(user["user_nickname"]), participants)))
     else:
         message += f"We currently have no participants 😢"
 
