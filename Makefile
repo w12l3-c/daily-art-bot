@@ -1,7 +1,7 @@
 # Name of the Docker image
 IMAGE_NAME = daily-art-bot
 
-.PHONY: all build run stop logs shell install-deps deploy backup restore
+.PHONY: all build run stop logs shell install-deps deploy backup restore redeploy
 
 all: build
 
@@ -70,6 +70,12 @@ backup:
 ## Deploy: setup, build and run with backup
 deploy: setup backup build run
 	@echo "Deployment complete! Use 'make logs' to monitor."
+
+## Redeploy: stop, pull latest, and deploy
+redeploy:
+	$(MAKE) stop
+	git pull
+	$(MAKE) deploy
 
 ## (Optional) Install Docker on your Raspberry Pi
 install-deps:
