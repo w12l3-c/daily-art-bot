@@ -68,6 +68,8 @@ def message_has_media(message):
 
 
 async def on_message_daily(message):
+    command_message = message
+
     if message.author.id == 374012168028291073 and message.content.startswith("🔥"):
         guild = message.guild
         member = guild.get_member(message.author.id)
@@ -110,20 +112,25 @@ async def on_message_daily(message):
     
     if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
+        command_content_lower = command_message.content.lower()
         current_has_daily = "#daily" in content_lower
+        command_has_daily = "#daily" in command_content_lower
         referenced_has_daily = False
         if referenced_content is not None:
             referenced_has_daily = "#daily" in referenced_content.lower()
 
-        has_daily_tag = current_has_daily or referenced_has_daily
+        has_daily_tag = current_has_daily or command_has_daily or referenced_has_daily
         logger.info(
-            "#daily check | msg_id=%s author_id=%s current_has_daily=%s referenced_has_daily=%s has_daily_tag=%s current_content=%r referenced_content=%r",
+            "#daily check | msg_id=%s author_id=%s admin_submission=%s current_has_daily=%s command_has_daily=%s referenced_has_daily=%s has_daily_tag=%s current_content=%r command_content=%r referenced_content=%r",
             message.id,
             message.author.id,
+            admin_submission,
             current_has_daily,
+            command_has_daily,
             referenced_has_daily,
             has_daily_tag,
             message.content,
+            command_message.content,
             referenced_content,
         )
 
@@ -160,7 +167,7 @@ async def on_message_daily(message):
                     user_data['user_nickname'] = current_nickname
                     logger.info(f"Updated nickname for {message.author.name}: '{old_nickname}' -> '{current_nickname}'")
             
-            if has_daily_tag or admin_submission:
+            if has_daily_tag:
 
                 # There's a 1/10 chance that Zak will get yelled at whenever submitting a daily
                 random.seed()
