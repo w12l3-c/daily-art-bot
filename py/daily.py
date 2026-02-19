@@ -68,8 +68,6 @@ def message_has_media(message):
 
 
 async def on_message_daily(message):
-    original_message = message
-
     if message.author.id == 374012168028291073 and message.content.startswith("🔥"):
         guild = message.guild
         member = guild.get_member(message.author.id)
@@ -80,9 +78,12 @@ async def on_message_daily(message):
     has_media = message_has_media(message)
 
     admin_submission = False # mods and admins can submit for others
+    referenced_content = None
     
     # Check referenced messages (replies/forwards) safely 
     if not has_media and message.reference is not None and isinstance(message.reference.resolved, discord.Message):
+        referenced_content = message.reference.resolved.content
+
         # Check if it's a self-reply with media
         if message_has_media(message.reference.resolved) and (message.reference.resolved.author.id == message.author.id or message.author.id in shared.MOD_IDS or shared.has_admin_or_mod_permissions(message)):
             has_media = True
@@ -101,17 +102,17 @@ async def on_message_daily(message):
                     snapshots_copy = list(snapshots)
                     if snapshots_copy and isinstance(snapshots_copy[0], discord.MessageSnapshot):
                         has_media = message_has_media(snapshots_copy[0])
+                        if not referenced_content:
+                            referenced_content = snapshots_copy[0].content
             except (IndexError, AttributeError):
                 # If there's any error accessing snapshots, treat as no media
                 pass
     
     if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
-        referenced_content_lower = ""
-        if original_message.reference is not None and isinstance(original_message.reference.resolved, discord.Message):
-            referenced_content_lower = original_message.reference.resolved.content.lower()
-
-        has_daily_tag = "#daily" in content_lower or "#daily" in referenced_content_lower
+        has_daily_tag = "#daily" in content_lower
+        if referenced_content is not None:
+            has_daily_tag = has_daily_tag or "#daily" in referenced_content.lower()
 
         # Handle badge uploads (specific role required)
         if "#badge" in content_lower:
