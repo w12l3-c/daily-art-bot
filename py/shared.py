@@ -71,13 +71,13 @@ wcw_last_message_week = 0
 wcw_last_reminder_1_week = 0
 wcw_last_reminder_2_week = 0
 
-WCW_WARDENS = [516344918566764594, 414612223273598986]
+WCW_WARDENS = [516344918566764594, 414612223273598986]  # Ryan, Deceased
 
 # Configurable mod role name (case-insensitive)
-MOD_ROLE_NAME = ["wal", "wal#0001", "bot mod", "AI"]  # Can use any case, comparison is case-insensitive
+MOD_ROLE_NAME = ["wal", "wal#0001", "bot moderator", "ai"]  # Can use any case, comparison is case-insensitive
 
 # Configurable mod IDs
-MOD_IDS = [516344918566764594, 666772080162766910]
+MOD_IDS = [516344918566764594, 666772080162766910]  # Ryan, Wal
 
 # Challenge tracking values
 # data will be stored in backup.json
