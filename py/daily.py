@@ -110,9 +110,22 @@ async def on_message_daily(message):
     
     if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
-        has_daily_tag = "#daily" in content_lower
+        current_has_daily = "#daily" in content_lower
+        referenced_has_daily = False
         if referenced_content is not None:
-            has_daily_tag = has_daily_tag or "#daily" in referenced_content.lower()
+            referenced_has_daily = "#daily" in referenced_content.lower()
+
+        has_daily_tag = current_has_daily or referenced_has_daily
+        logger.info(
+            "#daily check | msg_id=%s author_id=%s current_has_daily=%s referenced_has_daily=%s has_daily_tag=%s current_content=%r referenced_content=%r",
+            message.id,
+            message.author.id,
+            current_has_daily,
+            referenced_has_daily,
+            has_daily_tag,
+            message.content,
+            referenced_content,
+        )
 
         # Handle badge uploads (specific role required)
         if "#badge" in content_lower:
