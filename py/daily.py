@@ -68,6 +68,8 @@ def message_has_media(message):
 
 
 async def on_message_daily(message):
+    original_message = message
+
     if message.author.id == 374012168028291073 and message.content.startswith("🔥"):
         guild = message.guild
         member = guild.get_member(message.author.id)
@@ -105,6 +107,11 @@ async def on_message_daily(message):
     
     if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
+        referenced_content_lower = ""
+        if original_message.reference is not None and isinstance(original_message.reference.resolved, discord.Message):
+            referenced_content_lower = original_message.reference.resolved.content.lower()
+
+        has_daily_tag = "#daily" in content_lower or "#daily" in referenced_content_lower
 
         # Handle badge uploads (specific role required)
         if "#badge" in content_lower:
@@ -139,7 +146,7 @@ async def on_message_daily(message):
                     user_data['user_nickname'] = current_nickname
                     logger.info(f"Updated nickname for {message.author.name}: '{old_nickname}' -> '{current_nickname}'")
             
-            if "#daily" in content_lower or admin_submission:
+            if has_daily_tag or admin_submission:
 
                 # There's a 1/10 chance that Zak will get yelled at whenever submitting a daily
                 random.seed()
