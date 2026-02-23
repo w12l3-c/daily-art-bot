@@ -85,12 +85,14 @@ async def on_message_daily(message: discord.Message):
     if not has_media and message.reference is not None and isinstance(message.reference.resolved, discord.Message):
         referenced_content = message.reference.resolved.content
 
+        author_is_admin = message.author.id in shared.MOD_IDS or shared.has_admin_or_mod_permissions(message)
+
         # Check if it's a self-reply with media
-        if message_has_media(message.reference.resolved) and (message.reference.resolved.author.id == message.author.id or message.author.id in shared.MOD_IDS or shared.has_admin_or_mod_permissions(message)):
+        if message_has_media(message.reference.resolved) and (message.reference.resolved.author.id == message.author.id or author_is_admin):
             has_media = True
 
             # Allows daily bot admins to add dailies for others
-            if (message.author.id in shared.MOD_IDS or shared.has_admin_or_mod_permissions(message)) and "#daily" in message.content.lower():
+            if author_is_admin and "#daily" in message.content.lower():
                 admin_submission = True
                 message = message.reference.resolved
                 logger.info("admin submission")
@@ -103,9 +105,18 @@ async def on_message_daily(message: discord.Message):
                     # Make a copy to avoid race conditions
                     snapshots_copy = list(snapshots)
                     if snapshots_copy and isinstance(snapshots_copy[0], discord.MessageSnapshot):
+                        
                         has_media = message_has_media(snapshots_copy[0])
+
+                        if has_media and author_is_admin and "#daily" in message.content.lower():
+                            # Allows daily bot admins to add dailies for others
+                            admin_submission = True
+                            message = message.reference.resolved
+                            logger.info("admin submission")
                         if not referenced_content:
                             referenced_content = snapshots_copy[0].content
+
+                        
             except (IndexError, AttributeError):
                 # If there's any error accessing snapshots, treat as no media
                 pass
