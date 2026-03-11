@@ -1,5 +1,5 @@
 {
-    "current_day": 34,
+    "current_day": 35,
     "season": 5,
     "season_days": 50,
     "challenge_day": 0,
@@ -12,12 +12,12 @@
     "tracked_users": {
         "374012168028291073": {
             "username": "aikhao",
-            "user_nickname": "ai ai ai  [manaiger] waife lover",
+            "user_nickname": "ai BOGO 50% OFF [manaiger] WL",
             "submission": "",
             "parole_days": 2,
             "deceased": true,
-            "deceased_days": 32,
-            "missing_days": 29,
+            "deceased_days": 33,
+            "missing_days": 30,
             "revival": 2,
             "buffer": 0,
             "probation": false,
@@ -29,13 +29,13 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 18
+            "consecutive_missed_days": 19
         },
         "419488572794470415": {
             "username": "leecheejelly",
             "user_nickname": "Festive ceLeebrations",
             "submission": "",
-            "parole_days": 30,
+            "parole_days": 31,
             "deceased": false,
             "deceased_days": 1,
             "missing_days": 0,
@@ -49,7 +49,7 @@
             "challenge_participations": 4,
             "challenge_completions": 1,
             "challenge_streak": 1,
-            "challenge_submissions": 12,
+            "challenge_submissions": 13,
             "consecutive_missed_days": 0
         },
         "1001850270378115152": {
@@ -58,8 +58,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -71,7 +71,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "519023036783919104": {
             "username": "eolhc246",
@@ -79,8 +79,8 @@
             "submission": "",
             "parole_days": 17,
             "deceased": true,
-            "deceased_days": 17,
-            "missing_days": 12,
+            "deceased_days": 18,
+            "missing_days": 13,
             "revival": 2,
             "buffer": 0,
             "probation": false,
@@ -92,7 +92,7 @@
             "challenge_completions": 1,
             "challenge_streak": 1,
             "challenge_submissions": 1,
-            "consecutive_missed_days": 12
+            "consecutive_missed_days": 13
         },
         "472930608734142464": {
             "username": "f1a2f3",
@@ -100,8 +100,8 @@
             "submission": "",
             "parole_days": 16,
             "deceased": true,
-            "deceased_days": 15,
-            "missing_days": 7,
+            "deceased_days": 16,
+            "missing_days": 8,
             "revival": 5,
             "buffer": 3,
             "probation": false,
@@ -113,7 +113,7 @@
             "challenge_completions": 1,
             "challenge_streak": 1,
             "challenge_submissions": 1,
-            "consecutive_missed_days": 8
+            "consecutive_missed_days": 9
         },
         "620275606910926858": {
             "username": "meem_0",
@@ -121,8 +121,8 @@
             "submission": "",
             "parole_days": 15,
             "deceased": true,
-            "deceased_days": 18,
-            "missing_days": 11,
+            "deceased_days": 19,
+            "missing_days": 12,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -134,7 +134,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 12
+            "consecutive_missed_days": 13
         },
         "996202733013057546": {
             "username": "a2roger",
@@ -142,49 +142,7 @@
             "submission": "",
             "parole_days": 17,
             "deceased": true,
-            "deceased_days": 12,
-            "missing_days": 2,
-            "revival": 7,
-            "buffer": 0,
-            "probation": false,
-            "ping": false,
-            "duels_won": 0,
-            "duels_lost": 0,
-            "in_challenges": false,
-            "challenge_participations": 3,
-            "challenge_completions": 0,
-            "challenge_streak": 0,
-            "challenge_submissions": 0,
-            "consecutive_missed_days": 1
-        },
-        "432730086853312512": {
-            "username": "fernano7252",
-            "user_nickname": "fernano7252",
-            "submission": "",
-            "parole_days": 25,
-            "deceased": false,
-            "deceased_days": 5,
-            "missing_days": 1,
-            "revival": 3,
-            "buffer": 0,
-            "probation": false,
-            "ping": false,
-            "duels_won": 0,
-            "duels_lost": 0,
-            "in_challenges": true,
-            "challenge_participations": 4,
-            "challenge_completions": 1,
-            "challenge_streak": 1,
-            "challenge_submissions": 6,
-            "consecutive_missed_days": 0
-        },
-        "414612223273598986": {
-            "username": "deceasedenglishman",
-            "user_nickname": "Deceased H. Miku, crow heralder",
-            "submission": "",
-            "parole_days": 12,
-            "deceased": true,
-            "deceased_days": 15,
+            "deceased_days": 13,
             "missing_days": 3,
             "revival": 7,
             "buffer": 0,
@@ -197,7 +155,49 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 4
+            "consecutive_missed_days": 2
+        },
+        "432730086853312512": {
+            "username": "fernano7252",
+            "user_nickname": "fernano7252",
+            "submission": "",
+            "parole_days": 25,
+            "deceased": true,
+            "deceased_days": 6,
+            "missing_days": 2,
+            "revival": 3,
+            "buffer": 0,
+            "probation": false,
+            "ping": false,
+            "duels_won": 0,
+            "duels_lost": 0,
+            "in_challenges": true,
+            "challenge_participations": 4,
+            "challenge_completions": 1,
+            "challenge_streak": 1,
+            "challenge_submissions": 6,
+            "consecutive_missed_days": 1
+        },
+        "414612223273598986": {
+            "username": "deceasedenglishman",
+            "user_nickname": "Deceased H. Miku, crow heralder",
+            "submission": "",
+            "parole_days": 13,
+            "deceased": false,
+            "deceased_days": 15,
+            "missing_days": 2,
+            "revival": 8,
+            "buffer": 0,
+            "probation": false,
+            "ping": false,
+            "duels_won": 0,
+            "duels_lost": 0,
+            "in_challenges": false,
+            "challenge_participations": 3,
+            "challenge_completions": 0,
+            "challenge_streak": 0,
+            "challenge_submissions": 0,
+            "consecutive_missed_days": 0
         },
         "627298856195063822": {
             "username": "ashley_uwu4427",
@@ -205,8 +205,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -218,7 +218,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "787076081932173363": {
             "username": "le_roilion",
@@ -226,8 +226,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -239,7 +239,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "777686648359616512": {
             "username": "c_animaniac",
@@ -247,8 +247,8 @@
             "submission": "",
             "parole_days": 12,
             "deceased": true,
-            "deceased_days": 20,
-            "missing_days": 8,
+            "deceased_days": 21,
+            "missing_days": 9,
             "revival": 2,
             "buffer": 0,
             "probation": false,
@@ -260,7 +260,7 @@
             "challenge_completions": 1,
             "challenge_streak": 1,
             "challenge_submissions": 4,
-            "consecutive_missed_days": 9
+            "consecutive_missed_days": 10
         },
         "689477491664093184": {
             "username": "mootah.",
@@ -268,8 +268,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -281,7 +281,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "402936063242534912": {
             "username": "ccoffii",
@@ -289,8 +289,8 @@
             "submission": "",
             "parole_days": 7,
             "deceased": true,
-            "deceased_days": 27,
-            "missing_days": 18,
+            "deceased_days": 28,
+            "missing_days": 19,
             "revival": 5,
             "buffer": 0,
             "probation": false,
@@ -302,13 +302,13 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 4
+            "consecutive_missed_days": 5
         },
         "836568530366758942": {
             "username": "lauriceshoes",
-            "user_nickname": "L\u2019s #1 hater",
+            "user_nickname": "L\u2019s #1 hater (90% discount)",
             "submission": "",
-            "parole_days": 32,
+            "parole_days": 33,
             "deceased": false,
             "deceased_days": 1,
             "missing_days": 0,
@@ -322,18 +322,18 @@
             "challenge_participations": 4,
             "challenge_completions": 1,
             "challenge_streak": 1,
-            "challenge_submissions": 13,
+            "challenge_submissions": 14,
             "consecutive_missed_days": 0
         },
         "354751077788418058": {
             "username": "papatchy",
-            "user_nickname": "Dav Dav Dav [Davice-Presidavid]",
+            "user_nickname": "David H Mario [Vice-President]",
             "submission": "",
-            "parole_days": 13,
-            "deceased": true,
+            "parole_days": 14,
+            "deceased": false,
             "deceased_days": 17,
-            "missing_days": 6,
-            "revival": 7,
+            "missing_days": 5,
+            "revival": 8,
             "buffer": 0,
             "probation": false,
             "ping": false,
@@ -343,14 +343,14 @@
             "challenge_participations": 4,
             "challenge_completions": 0,
             "challenge_streak": 0,
-            "challenge_submissions": 3,
-            "consecutive_missed_days": 2
+            "challenge_submissions": 4,
+            "consecutive_missed_days": 0
         },
         "559028502821601301": {
             "username": "sygviii",
             "user_nickname": "syg \ud83e\ude90 [dead]",
             "submission": "",
-            "parole_days": 30,
+            "parole_days": 31,
             "deceased": false,
             "deceased_days": 1,
             "missing_days": 0,
@@ -364,7 +364,7 @@
             "challenge_participations": 4,
             "challenge_completions": 1,
             "challenge_streak": 1,
-            "challenge_submissions": 12,
+            "challenge_submissions": 13,
             "consecutive_missed_days": 0
         },
         "342086591302336524": {
@@ -373,8 +373,8 @@
             "submission": "",
             "parole_days": 2,
             "deceased": true,
-            "deceased_days": 32,
-            "missing_days": 31,
+            "deceased_days": 33,
+            "missing_days": 32,
             "revival": 1,
             "buffer": 0,
             "probation": false,
@@ -386,7 +386,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 31
+            "consecutive_missed_days": 32
         },
         "706609052280684577": {
             "username": "palepinkroses",
@@ -394,8 +394,8 @@
             "submission": "",
             "parole_days": 14,
             "deceased": true,
-            "deceased_days": 20,
-            "missing_days": 12,
+            "deceased_days": 21,
+            "missing_days": 13,
             "revival": 6,
             "buffer": 0,
             "probation": false,
@@ -407,7 +407,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 3,
-            "consecutive_missed_days": 5
+            "consecutive_missed_days": 6
         },
         "754833412803526806": {
             "username": "mmimiful",
@@ -415,8 +415,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -428,7 +428,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "259710534058770432": {
             "username": "krunchr",
@@ -436,8 +436,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -449,7 +449,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "673620290546434067": {
             "username": "heterosapien_unbound",
@@ -457,8 +457,8 @@
             "submission": "",
             "parole_days": 4,
             "deceased": true,
-            "deceased_days": 30,
-            "missing_days": 27,
+            "deceased_days": 31,
+            "missing_days": 28,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -470,7 +470,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 12
+            "consecutive_missed_days": 13
         },
         "1205651323543097475": {
             "username": "milksnakez.",
@@ -478,8 +478,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -491,7 +491,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "516344918566764594": {
             "username": "ry_z",
@@ -499,8 +499,8 @@
             "submission": "",
             "parole_days": 3,
             "deceased": true,
-            "deceased_days": 31,
-            "missing_days": 28,
+            "deceased_days": 32,
+            "missing_days": 29,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -512,7 +512,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 14
+            "consecutive_missed_days": 15
         },
         "704025986454257814": {
             "username": "cherritimbit",
@@ -520,8 +520,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -533,7 +533,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "696476298221977701": {
             "username": "shuyun_",
@@ -541,8 +541,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -554,7 +554,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "724700457510895686": {
             "username": "g_x_h_a",
@@ -562,8 +562,8 @@
             "submission": "",
             "parole_days": 9,
             "deceased": true,
-            "deceased_days": 25,
-            "missing_days": 23,
+            "deceased_days": 26,
+            "missing_days": 24,
             "revival": 2,
             "buffer": 0,
             "probation": false,
@@ -575,7 +575,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 7
+            "consecutive_missed_days": 8
         },
         "743257829887967313": {
             "username": "layercake_",
@@ -583,8 +583,8 @@
             "submission": "",
             "parole_days": 13,
             "deceased": true,
-            "deceased_days": 21,
-            "missing_days": 15,
+            "deceased_days": 22,
+            "missing_days": 16,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -596,7 +596,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 14
+            "consecutive_missed_days": 15
         },
         "257368775395901441": {
             "username": "rfeb",
@@ -604,8 +604,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -617,13 +617,13 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "399271789173276682": {
             "username": "henrazz",
             "user_nickname": "Narcisyphus",
             "submission": "",
-            "parole_days": 21,
+            "parole_days": 22,
             "deceased": false,
             "deceased_days": 13,
             "missing_days": 0,
@@ -646,8 +646,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -659,7 +659,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "1003835266458460253": {
             "username": "yebink",
@@ -667,8 +667,8 @@
             "submission": "",
             "parole_days": 15,
             "deceased": true,
-            "deceased_days": 19,
-            "missing_days": 12,
+            "deceased_days": 20,
+            "missing_days": 13,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -680,7 +680,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 1,
-            "consecutive_missed_days": 9
+            "consecutive_missed_days": 10
         },
         "1297359140347449354": {
             "username": "aireer.",
@@ -688,8 +688,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -701,16 +701,16 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "1017049333994106931": {
             "username": "eggeggarsh",
-            "user_nickname": "arsh [President] egg egg egg egg",
+            "user_nickname": "arsh [President] $11M on ebay",
             "submission": "",
             "parole_days": 4,
             "deceased": true,
-            "deceased_days": 30,
-            "missing_days": 26,
+            "deceased_days": 31,
+            "missing_days": 27,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -722,7 +722,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 16
+            "consecutive_missed_days": 17
         },
         "1181412153304039506": {
             "username": "kitsune_ehe",
@@ -730,8 +730,8 @@
             "submission": "",
             "parole_days": 14,
             "deceased": true,
-            "deceased_days": 16,
-            "missing_days": 11,
+            "deceased_days": 17,
+            "missing_days": 12,
             "revival": 4,
             "buffer": 0,
             "probation": false,
@@ -743,7 +743,7 @@
             "challenge_completions": 1,
             "challenge_streak": 0,
             "challenge_submissions": 2,
-            "consecutive_missed_days": 11
+            "consecutive_missed_days": 12
         },
         "543545944965120031": {
             "username": "ab0b",
@@ -751,8 +751,8 @@
             "submission": "",
             "parole_days": 1,
             "deceased": true,
-            "deceased_days": 33,
-            "missing_days": 28,
+            "deceased_days": 34,
+            "missing_days": 29,
             "revival": 1,
             "buffer": 0,
             "probation": false,
@@ -764,7 +764,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 23
+            "consecutive_missed_days": 24
         },
         "624377720696078376": {
             "username": "lei_qiii",
@@ -772,8 +772,8 @@
             "submission": "",
             "parole_days": 9,
             "deceased": true,
-            "deceased_days": 25,
-            "missing_days": 16,
+            "deceased_days": 26,
+            "missing_days": 17,
             "revival": 2,
             "buffer": 0,
             "probation": false,
@@ -785,7 +785,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 12
+            "consecutive_missed_days": 13
         },
         "456632972226068481": {
             "username": "emmm.jpg",
@@ -793,8 +793,8 @@
             "submission": "",
             "parole_days": 1,
             "deceased": true,
-            "deceased_days": 33,
-            "missing_days": 32,
+            "deceased_days": 34,
+            "missing_days": 33,
             "revival": 1,
             "buffer": 0,
             "probation": false,
@@ -806,7 +806,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 31
+            "consecutive_missed_days": 32
         },
         "381638873664454657": {
             "username": "enviyu",
@@ -814,8 +814,8 @@
             "submission": "",
             "parole_days": 8,
             "deceased": true,
-            "deceased_days": 24,
-            "missing_days": 18,
+            "deceased_days": 25,
+            "missing_days": 19,
             "revival": 4,
             "buffer": 0,
             "probation": false,
@@ -827,7 +827,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 17
+            "consecutive_missed_days": 18
         },
         "492878105568870402": {
             "username": "paperbagjinn",
@@ -835,8 +835,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -848,7 +848,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "343534529128038400": {
             "username": "zewbee_",
@@ -856,8 +856,8 @@
             "submission": "",
             "parole_days": 8,
             "deceased": true,
-            "deceased_days": 24,
-            "missing_days": 20,
+            "deceased_days": 25,
+            "missing_days": 21,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -869,7 +869,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 21
+            "consecutive_missed_days": 22
         },
         "580544728169447457": {
             "username": "lappalter",
@@ -877,8 +877,8 @@
             "submission": "",
             "parole_days": 20,
             "deceased": true,
-            "deceased_days": 9,
-            "missing_days": 7,
+            "deceased_days": 10,
+            "missing_days": 8,
             "revival": 2,
             "buffer": 7,
             "probation": false,
@@ -890,7 +890,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 8
+            "consecutive_missed_days": 9
         },
         "726273739343396925": {
             "username": "daiizyyy",
@@ -898,8 +898,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -911,7 +911,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "416791337568829450": {
             "username": "nettlespike",
@@ -919,8 +919,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -932,7 +932,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "703281025379205191": {
             "username": "iwcj",
@@ -940,8 +940,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -953,7 +953,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "549137831348404234": {
             "username": "sixty_two",
@@ -961,8 +961,8 @@
             "submission": "",
             "parole_days": 6,
             "deceased": true,
-            "deceased_days": 28,
-            "missing_days": 22,
+            "deceased_days": 29,
+            "missing_days": 23,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -974,17 +974,17 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 12
+            "consecutive_missed_days": 13
         },
         "881999200118767627": {
             "username": "hamsteraaaaa",
             "user_nickname": "Hammer",
             "submission": "",
-            "parole_days": 0,
-            "deceased": true,
+            "parole_days": 1,
+            "deceased": false,
             "deceased_days": 34,
-            "missing_days": 34,
-            "revival": 0,
+            "missing_days": 33,
+            "revival": 1,
             "buffer": 0,
             "probation": false,
             "ping": false,
@@ -995,7 +995,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 0
         },
         "502200312875188244": {
             "username": "eagle5877",
@@ -1003,8 +1003,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1016,7 +1016,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "751553599112347738": {
             "username": "leotian",
@@ -1024,8 +1024,8 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1037,7 +1037,7 @@
             "challenge_completions": 0,
             "challenge_streak": 0,
             "challenge_submissions": 0,
-            "consecutive_missed_days": 34
+            "consecutive_missed_days": 35
         },
         "701182690770288801": {
             "username": "c00b_bit_jerry",
@@ -1045,9 +1045,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1066,9 +1066,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1087,9 +1087,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1106,7 +1106,7 @@
             "username": "bobbieowowowo",
             "user_nickname": "Bobbie the MeOWOer",
             "submission": "",
-            "parole_days": 30,
+            "parole_days": 31,
             "deceased": false,
             "deceased_days": 2,
             "missing_days": 0,
@@ -1121,7 +1121,7 @@
             "challenge_participations": 4,
             "challenge_completions": 2,
             "challenge_streak": 1,
-            "challenge_submissions": 13
+            "challenge_submissions": 14
         },
         "294511847564902401": {
             "username": "shiisana.",
@@ -1129,9 +1129,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1150,9 +1150,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1171,9 +1171,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1192,9 +1192,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1213,9 +1213,9 @@
             "submission": "",
             "parole_days": 2,
             "deceased": true,
-            "deceased_days": 32,
-            "missing_days": 30,
-            "consecutive_missed_days": 18,
+            "deceased_days": 33,
+            "missing_days": 31,
+            "consecutive_missed_days": 19,
             "revival": 2,
             "buffer": 0,
             "probation": false,
@@ -1234,9 +1234,9 @@
             "submission": "",
             "parole_days": 5,
             "deceased": true,
-            "deceased_days": 29,
-            "missing_days": 24,
-            "consecutive_missed_days": 16,
+            "deceased_days": 30,
+            "missing_days": 25,
+            "consecutive_missed_days": 17,
             "revival": 3,
             "buffer": 0,
             "probation": false,
@@ -1255,9 +1255,9 @@
             "submission": "",
             "parole_days": 15,
             "deceased": true,
-            "deceased_days": 18,
-            "missing_days": 12,
-            "consecutive_missed_days": 12,
+            "deceased_days": 19,
+            "missing_days": 13,
+            "consecutive_missed_days": 13,
             "revival": 4,
             "buffer": 0,
             "probation": false,
@@ -1276,9 +1276,9 @@
             "submission": "",
             "parole_days": 1,
             "deceased": true,
-            "deceased_days": 33,
-            "missing_days": 32,
-            "consecutive_missed_days": 23,
+            "deceased_days": 34,
+            "missing_days": 33,
+            "consecutive_missed_days": 24,
             "revival": 1,
             "buffer": 0,
             "probation": false,
@@ -1297,9 +1297,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1318,9 +1318,9 @@
             "submission": "",
             "parole_days": 0,
             "deceased": true,
-            "deceased_days": 34,
-            "missing_days": 34,
-            "consecutive_missed_days": 34,
+            "deceased_days": 35,
+            "missing_days": 35,
+            "consecutive_missed_days": 35,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1339,9 +1339,9 @@
             "submission": "",
             "parole_days": 6,
             "deceased": true,
-            "deceased_days": 28,
-            "missing_days": 18,
-            "consecutive_missed_days": 8,
+            "deceased_days": 29,
+            "missing_days": 19,
+            "consecutive_missed_days": 9,
             "revival": 6,
             "buffer": 0,
             "probation": false,
@@ -1360,9 +1360,9 @@
             "submission": "",
             "parole_days": 12,
             "deceased": true,
-            "deceased_days": 19,
-            "missing_days": 4,
-            "consecutive_missed_days": 2,
+            "deceased_days": 20,
+            "missing_days": 5,
+            "consecutive_missed_days": 3,
             "revival": 8,
             "buffer": 0,
             "probation": false,
@@ -1381,9 +1381,9 @@
             "submission": "",
             "parole_days": 3,
             "deceased": true,
-            "deceased_days": 28,
-            "missing_days": 25,
-            "consecutive_missed_days": 23,
+            "deceased_days": 29,
+            "missing_days": 26,
+            "consecutive_missed_days": 24,
             "revival": 2,
             "buffer": 0,
             "probation": false,
@@ -1400,7 +1400,7 @@
             "username": "fluorescents000",
             "user_nickname": "fluorescents000",
             "submission": "",
-            "parole_days": 23,
+            "parole_days": 24,
             "deceased": false,
             "deceased_days": 0,
             "missing_days": 0,
@@ -1415,7 +1415,7 @@
             "challenge_participations": 1,
             "challenge_completions": 1,
             "challenge_streak": 1,
-            "challenge_submissions": 13
+            "challenge_submissions": 14
         },
         "372076736860389376": {
             "username": "gemmadj",
@@ -1423,9 +1423,9 @@
             "submission": "",
             "parole_days": 15,
             "deceased": true,
-            "deceased_days": 4,
-            "missing_days": 2,
-            "consecutive_missed_days": 2,
+            "deceased_days": 5,
+            "missing_days": 3,
+            "consecutive_missed_days": 3,
             "revival": 2,
             "buffer": 0,
             "probation": false,
@@ -1444,9 +1444,9 @@
             "submission": "",
             "parole_days": 8,
             "deceased": true,
-            "deceased_days": 12,
-            "missing_days": 12,
-            "consecutive_missed_days": 12,
+            "deceased_days": 13,
+            "missing_days": 13,
+            "consecutive_missed_days": 13,
             "revival": 0,
             "buffer": 0,
             "probation": false,
@@ -1465,9 +1465,9 @@
             "submission": "",
             "parole_days": 8,
             "deceased": true,
-            "deceased_days": 10,
-            "missing_days": 9,
-            "consecutive_missed_days": 9,
+            "deceased_days": 11,
+            "missing_days": 10,
+            "consecutive_missed_days": 10,
             "revival": 1,
             "buffer": 0,
             "probation": false,
