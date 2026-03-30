@@ -765,7 +765,7 @@ async def debug(interaction: discord.Interaction, param: str):
 
 @bot.tree.command(name="get_log", description="Get last 10k lines of log file")
 @app_commands.describe(ephemeral="Send ephemerally (sent by DM if False)")
-async def debug(interaction: discord.Interaction, ephemeral: bool = False):
+async def get_log(interaction: discord.Interaction, ephemeral: bool = False):
     if not shared.has_admin_or_mod_permissions(interaction):
         await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
         return
@@ -823,4 +823,12 @@ async def debug(interaction: discord.Interaction, ephemeral: bool = False):
             ephemeral=True
         )
 
+@bot.tree.command(name="force_yell_at_zak", description="Bully Zak (Admin only)")
+@app_commands.describe(val="If Zak will get bullied by WalBot when next submitting")
+async def force_yell_at_zak(interaction: discord.Interaction, val: bool):
+    if not shared.has_admin_or_mod_permissions(interaction):
+        await interaction.response.send_message("❌ You need administrator permissions or mod role to use this command.", ephemeral=True)
+        return
 
+    shared.force_yell_at_zak = val
+    await interaction.response.send_message(f"Should yell at Zak set to: {val}", ephemeral=True)

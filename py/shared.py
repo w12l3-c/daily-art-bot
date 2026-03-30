@@ -90,6 +90,8 @@ challenge_theme = ""
 challenge_number = 1
 challenge_threshold = 7
 
+force_yell_at_zak = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

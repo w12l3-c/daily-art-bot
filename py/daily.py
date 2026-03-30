@@ -5,7 +5,8 @@ This file contains functions related to the daily art tracking aspect of the bot
 import asyncio
 import discord
 from discord.ext import tasks
-from datetime import datetime
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
 import os
 import json
 import subprocess
@@ -158,12 +159,7 @@ async def on_message_daily(message: discord.Message):
                     logger.info(f"Updated nickname for {message.author.name}: '{old_nickname}' -> '{current_nickname}'")
             
             if "#daily" in content_lower or admin_submission:
-                # There's a 1/10 chance that Zak will get yelled at whenever submitting a daily
-                random.seed()
-                should_yell_at_zak = message.author.id == 472930608734142464 and random.random() * 10 < 1
-                if should_yell_at_zak:
-                    await message.channel.send(f"<@{message.author.id}> kekekekekekekeke")
-                elif user_data['submission']:
+                if user_data['submission']:
                     # User already submitted daily art, count this as buffer
                     user_data['buffer'] = user_data.get('buffer', 0) + 1
                     print(f"🛑 {message.author.name} submitted additional #daily art as buffer.")
@@ -172,7 +168,34 @@ async def on_message_daily(message: discord.Message):
                 else:
                     # First daily submission
                     user_data['submission'] = f"{message.channel.id}/{message.id}"  # Mark as official art submission
-                    if user_data["in_challenges"] and is_challenge_active():
+
+                    # There's a 1/7 chance that Zak will get yelled at whenever submitting a daily
+                    random.seed()
+
+                    should_yell_at_zak = message.author.id == 472930608734142464 and (random.random() * 7 < 1 or shared.force_yell_at_zak)
+
+                    if should_yell_at_zak:
+                        zak_messages = [
+                            f"🎨 {message.author.display_name}, your art has not been recorded for today! (Submission #{user_data['parole_days']})",
+                            f"🎨 {message.author.display_name}, your stats this season have been reset! (Submission #1)",
+                            f"<@{message.author.id}> Happy birthday!! 🎂🎂",
+                            f"<@{message.author.id}> kekekekekekekekekeke",
+                            f"<@{message.author.id}> LOCK IN",
+                            f"<@{message.author.id}> <:Clueless:1323516983442018355>",
+                            f"<@{message.author.id}> Sorry, you are currently banned from dailies. Please submit an appeal or try again at a later date.",
+                            f"<@{message.author.id}> Pay me, then I'll consider recording your daily.",
+                            f"<@{message.author.id}> nah",
+                            f"<@{message.author.id}> L",
+                            f"<@{message.author.id}> do you nose 👃",
+                            f"<@{message.author.id}> I'm off today, can this wait",
+                            f"<@{message.author.id}> I've actually been decrementing your submission count. You just haven't noticed (Submission #{user_data['parole_days'] - 1})",
+                            "https://media.discordapp.net/attachments/1419517897134440520/1446375977046507660/Idieded.gif?ex=69cb5e99&is=69ca0d19&hm=065e7c5c0644d021af62e33c28044089d030ecd49759e4dc05098639e9f0df15&=&width=640&height=640"
+                        ]
+
+                        await message.channel.send(random.choice(zak_messages))
+                        shared.force_yell_at_zak = False
+
+                    elif user_data["in_challenges"] and is_challenge_active():
                         print(f"✅ {message.author.name} completed their challenge.")
                         logger.info(f"{message.author.name} completed their challenge.")
                         await message.channel.send(f"{message.author.display_name}, you have completed your challenge today!")
@@ -222,13 +245,16 @@ async def on_message_daily(message: discord.Message):
                 print(f"📸 {message.author.name} uploaded an image but didn't tag it as art.")
                 logger.info(f"{message.author.name} uploaded an image but didn't tag it as art.")
 
+        await save_data_task()
+
     
 # Edit the seconds 
-@tasks.loop(minutes=1)
+@tasks.loop(time=time(hour=0, minute=0, second=0, microsecond=0, tzinfo=ZoneInfo("America/Toronto")))
 async def send_daily_art_message():
-    now = shared.now_et()   
+    now = shared.now_et()
     
-    if (now.hour == 0 and now.minute <= 1 and shared.last_daily_message_day != shared.now_et_day_str()) or forced_events.forced_daily:  # 12:15-12:45 AM EST (4:15-4:45 AM UTC)
+    # extra confirmation (code left over from before)
+    if (now.hour == 0 and now.minute <= 1 and shared.last_daily_message_day != shared.now_et_day_str()) or forced_events.forced_daily: 
         shared.last_daily_message_day = shared.now_et_day_str()
 
         print(f"Daily message check SUCCESS - Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} EST (Hour: {now.hour}, Minute: {now.minute})")
