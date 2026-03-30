@@ -745,12 +745,23 @@ async def find_submissions(interaction: discord.Interaction, user: discord.User 
             await interaction.response.send_message(f"User {user.name} not found in tracking.", ephemeral=True)
             return
         message += f"{shared.format_username(shared.tracked_users[user.id]['user_nickname'])}: " + shared.get_submission_link(user.id)
+        await interaction.response.send_message(message, ephemeral=True)
     else:
-        for user_id in shared.tracked_users.keys():
-            message += f"{shared.format_username(shared.tracked_users[user_id]['user_nickname'])}: " + shared.get_submission_link(user_id)
-            message += "\n"
+        message2 = ""
+        count = len(shared.tracked_users.keys())
+        for i, user_id in enumerate(shared.tracked_users.keys()):
+            if i < count / 2:
+                message += f"{shared.format_username(shared.tracked_users[user_id]['user_nickname'])}: " + shared.get_submission_link(user_id)
+                message += "\n"
+            else:
+                message2 += f"{shared.format_username(shared.tracked_users[user_id]['user_nickname'])}: " + shared.get_submission_link(user_id)
+                message2 += "\n"
+        
+        await interaction.response.send_message(message, ephemeral=True)
+        await interaction.followup.send(message2, ephemeral=True)
+
     
-    await interaction.response.send_message(message, ephemeral=True)
+    
 
 
 
