@@ -31,6 +31,7 @@ run: stop
 stop:
 	-docker stop $(IMAGE_NAME)
 	-docker rm $(IMAGE_NAME)
+	@bash ./auto_backup.sh
 
 ## Tail the bot logs
 logs:

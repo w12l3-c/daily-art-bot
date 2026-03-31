@@ -3,9 +3,10 @@ bot.py
 This file contains the bot instance, and acts as the entry point for the bot
 """
 
-from discord.ext import tasks
-import json
 import asyncio
+import json
+import signal
+from discord.ext import tasks
 from duel import register_duel_commands, set_tracked_users_reference, cleanup_expired_duels, load_duel_data
 from chain import register_chain_commands, set_tracked_users_reference as set_chain_tracked_users, load_chain_data 
 
@@ -18,6 +19,8 @@ import challenge_commands
 import wcw
 import wcw_commands
 import forced_events  # Import forced events to register debug commands
+
+shutdown_in_progress = False
 
 def load_data():
     try:
@@ -193,4 +196,52 @@ async def cleanup_duels():
     except Exception as e:
         logger.error(f"Error cleaning up duels: {e}")
 
-bot.run(shared.BOT_TOKEN)
+async def persist_runtime_state():
+    """Write live in-memory bot state to disk before shutdown."""
+    try:
+        await shared.save_data_task()
+    except Exception as e:
+        logger.error(f"Error saving daily data during shutdown: {e}")
+
+    try:
+        await wcw.save_data()
+    except Exception as e:
+        logger.error(f"Error saving WCW data during shutdown: {e}")
+
+
+async def shutdown_bot(signal_name: str):
+    global shutdown_in_progress
+
+    if shutdown_in_progress:
+        return
+
+    shutdown_in_progress = True
+    logger.info(f"Shutdown requested via {signal_name}")
+
+    await persist_runtime_state()
+
+    if not bot.is_closed():
+        await bot.close()
+
+
+async def main():
+    loop = asyncio.get_running_loop()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(
+                sig,
+                lambda sig=sig: asyncio.create_task(shutdown_bot(sig.name))
+            )
+        except NotImplementedError:
+            # Signal handlers are not available on some platforms/event loops.
+            pass
+
+    try:
+        await bot.start(shared.BOT_TOKEN)
+    finally:
+        if not shutdown_in_progress:
+            await persist_runtime_state()
+
+
+asyncio.run(main())

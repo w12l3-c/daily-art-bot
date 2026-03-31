@@ -51,7 +51,7 @@ fi
 restore_our_stash
 
 # Add backup.json to git
-git add backup.json
+git add backup.json wcw.json
 
 # Check if there are changes to commit
 if git diff --cached --quiet; then
@@ -65,8 +65,8 @@ git commit -m "$COMMIT_MSG"
 
 # Push to remote
 if git push origin main; then
-    echo "$(date): Successfully pushed backup.json"
+    echo "$(date): Successfully pushed backup.json and wcw.json"
 else
-    echo "$(date): Failed to push backup.json"
+    echo "$(date): Failed to push backup.json and wcw.json"
     exit 1
 fi

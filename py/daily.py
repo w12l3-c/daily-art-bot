@@ -68,7 +68,9 @@ def message_has_media(message):
         ))
 
 
-async def on_message_daily(message: discord.Message):
+async def on_message_daily(message):
+    command_message = message
+    command_content_lower = command_message.content.lower()
 
     if message.author.id == 374012168028291073 and message.content.startswith("🔥"):
         guild = message.guild
@@ -85,18 +87,30 @@ async def on_message_daily(message: discord.Message):
     # Check referenced messages (replies/forwards) safely 
     if not has_media and message.reference is not None and isinstance(message.reference.resolved, discord.Message):
         referenced_content = message.reference.resolved.content
+        is_admin = message.author.id in shared.MOD_IDS or shared.has_admin_or_mod_permissions(message)
+        is_self_reply = message.reference.resolved.author.id == message.author.id
+        has_submit_tag = "#submit" in command_content_lower
 
         author_is_admin = message.author.id in shared.MOD_IDS or shared.has_admin_or_mod_permissions(message)
 
         # Check if it's a self-reply with media
-        if message_has_media(message.reference.resolved) and (message.reference.resolved.author.id == message.author.id or author_is_admin):
+        if message_has_media(message.reference.resolved) and (is_self_reply or is_admin):
             has_media = True
 
             # Allows daily bot admins to add dailies for others
-            if author_is_admin and "#daily" in message.content.lower():
-                admin_submission = True
-                message = message.reference.resolved
-                logger.info("admin submission")
+            if is_admin and not is_self_reply:
+                if not has_submit_tag:
+                    has_media = False
+                    logger.info(
+                        "Admin assist ignored (missing #submit) | command_msg_id=%s admin_id=%s referenced_msg_id=%s command_content=%r",
+                        command_message.id,
+                        message.author.id,
+                        message.reference.resolved.id,
+                        command_message.content,
+                    )
+                else:
+                    admin_submission = True
+                    message = message.reference.resolved
 
         else:
             # Check forwarded message snapshots safely
@@ -124,6 +138,28 @@ async def on_message_daily(message: discord.Message):
     
     if has_media:
         content_lower = message.content.lower()  # Convert message to lowercase for case-insensitive tagging
+        current_has_daily = "#daily" in content_lower
+        command_has_daily = "#daily" in command_content_lower
+        command_has_submit = "#submit" in command_content_lower
+        referenced_has_daily = False
+        if referenced_content is not None:
+            referenced_has_daily = "#daily" in referenced_content.lower()
+
+        has_daily_tag = current_has_daily or command_has_daily or referenced_has_daily
+        logger.info(
+            "#daily check | msg_id=%s author_id=%s admin_submission=%s command_has_submit=%s current_has_daily=%s command_has_daily=%s referenced_has_daily=%s has_daily_tag=%s current_content=%r command_content=%r referenced_content=%r",
+            message.id,
+            message.author.id,
+            admin_submission,
+            command_has_submit,
+            current_has_daily,
+            command_has_daily,
+            referenced_has_daily,
+            has_daily_tag,
+            message.content,
+            command_message.content,
+            referenced_content,
+        )
 
         # Handle badge uploads (specific role required)
         if "#badge" in content_lower:
