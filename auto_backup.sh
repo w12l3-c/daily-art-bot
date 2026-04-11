@@ -13,6 +13,8 @@ if [ ! -f "backup.json" ]; then
     exit 0
 fi
 
+MAX_NET_DELETIONS=500
+
 # Function to restore our specific stash
 restore_our_stash() {
     if [ "$STASHED" = true ]; then
@@ -52,6 +54,25 @@ restore_our_stash
 
 # Add backup.json to git
 git add backup.json wcw.json
+
+# Guard against suspicious destructive rewrites of backup.json.
+# Normal rewrites can have lots of inserts/deletes, but if deletions exceed
+# insertions by a large amount we likely loaded bad in-memory state.
+BACKUP_NUMSTAT=$(git diff --cached --numstat -- backup.json)
+if [ -n "$BACKUP_NUMSTAT" ]; then
+    BACKUP_INSERTS=$(echo "$BACKUP_NUMSTAT" | awk '{print $1}')
+    BACKUP_DELETES=$(echo "$BACKUP_NUMSTAT" | awk '{print $2}')
+
+    if [ "$BACKUP_INSERTS" != "-" ] && [ "$BACKUP_DELETES" != "-" ]; then
+        NET_DELETIONS=$((BACKUP_DELETES - BACKUP_INSERTS))
+        if [ "$NET_DELETIONS" -gt "$MAX_NET_DELETIONS" ]; then
+            echo "$(date): Refusing auto-backup because backup.json has suspicious net deletions ($NET_DELETIONS > $MAX_NET_DELETIONS)."
+            echo "$(date): Restoring backup.json and wcw.json from HEAD to avoid pushing bad state."
+            git restore --source=HEAD --staged --worktree backup.json wcw.json
+            exit 1
+        fi
+    fi
+fi
 
 # Check if there are changes to commit
 if git diff --cached --quiet; then
