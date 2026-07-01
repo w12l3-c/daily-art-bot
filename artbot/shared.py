@@ -15,9 +15,11 @@ import shutil
 import logging
 from pathlib import Path
 
+from artbot.DiscordMessageSender import DiscordMessageSender
+from artbot.persistence.DailyStateRepository import DailyStateRepository
 # sketchy, shared shouldn't be importing from elsewhere
-from duel import get_duel_data
-from chain import get_chain_data
+from artbot.core.duel.DuelService import get_duel_data
+from artbot.core.chain.ChainService import get_chain_data
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -47,7 +49,11 @@ season_theme = "Testing"
 season_days = 50
 
 SAVED_DATA_PATH = PROJECT_ROOT_PATH / "backup.json"
+DEBUG_SAVED_DATA_PATH = PROJECT_ROOT_PATH / "backup_debug.json"
 BADGES_PATH = PROJECT_ROOT_PATH / "badges"
+DEBUG_MODE = False
+DEBUG_ANNOUNCEMENT_CHANNEL = 1281049819342831636
+DEBUG_TIME_DEPLOY_MINUTES = 1
 
 # Track when messages were last sent to prevent duplicates
 last_daily_message_day = ""
@@ -57,6 +63,11 @@ last_warning_2_day = ""
 
 time_debug = 30  # seconds
 time_deploy = 1 # hours
+
+DISCORD_MESSAGE_LIMIT = 2000
+DISCORD_SAFE_MESSAGE_LIMIT = 1900
+DISCORD_MARKDOWN_BREAK = "\n\u200b\n"
+message_sender = DiscordMessageSender()
 
 # WCW tracking values
 wcw_allowed_channels = [1419486211948413098, 1440845080742199426, 1441228179434897479, 1468981683536527604]
@@ -104,6 +115,93 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def split_discord_message(
+    message: str,
+    max_length: int = DISCORD_SAFE_MESSAGE_LIMIT,
+) -> list[str]:
+    """Split message text into Discord-safe chunks.
+
+    Args:
+        message: Discord message content.
+        max_length: Maximum chunk length. Defaults below Discord's hard 2000
+            character limit to leave room for markdown boundary padding.
+
+    Returns:
+        Message chunks, preserving line boundaries when possible.
+    """
+    return message_sender.split_message(message, max_length=max_length)
+
+
+async def send_discord_message(destination, message: str, **kwargs) -> list[discord.Message]:
+    """Send content to a channel/user, splitting it into safe chunks."""
+    return await message_sender.send_channel(destination, message, **kwargs)
+
+
+async def send_interaction_message(
+    interaction: discord.Interaction,
+    message: str,
+    ephemeral: bool = False,
+    **kwargs,
+) -> None:
+    """Send an interaction response, using followups for overflow chunks."""
+    await message_sender.send_interaction(
+        interaction,
+        message,
+        ephemeral=ephemeral,
+        **kwargs,
+    )
+
+
+async def send_followup_message(
+    interaction: discord.Interaction,
+    message: str,
+    ephemeral: bool = False,
+    **kwargs,
+) -> None:
+    """Send interaction followups, splitting content into safe chunks."""
+    await message_sender.send_followup(
+        interaction,
+        message,
+        ephemeral=ephemeral,
+        **kwargs,
+    )
+
+
+def normalize_role_name(role_name: str) -> str:
+    return role_name.strip().casefold()
+
+
+def has_named_role(member, role_names: list[str]) -> bool:
+    roles = getattr(member, "roles", [])
+    normalized_role_names = {normalize_role_name(role_name) for role_name in role_names}
+    return any(
+        normalize_role_name(role.name) in normalized_role_names
+        for role in roles
+    )
+
+
+def describe_member_roles(member, max_roles: int = 30) -> str:
+    if member is None:
+        return "member=None roles=[]"
+
+    roles = list(getattr(member, "roles", []))
+    role_names = [getattr(role, "name", "<unnamed>") for role in roles]
+    normalized_names = [normalize_role_name(role_name) for role_name in role_names]
+    truncated = len(role_names) > max_roles
+
+    if truncated:
+        role_names = role_names[:max_roles]
+        normalized_names = normalized_names[:max_roles]
+
+    return (
+        f"member_type={type(member).__name__} "
+        f"role_count={len(roles)} "
+        f"truncated={truncated} "
+        f"role_names={role_names!r} "
+        f"normalized_role_names={normalized_names!r}"
+    )
+
+
 def has_admin_or_mod_permissions(param) -> bool:
     user = None
     if isinstance(param, discord.Interaction):
@@ -112,21 +210,21 @@ def has_admin_or_mod_permissions(param) -> bool:
         user = param
     elif isinstance(param, discord.Message):
         user = param.author
+    elif hasattr(param, "id"):
+        user = param
     else:
         return False
     
 
     """Check if user has administrator permissions or mod role"""
     # Check for administrator permissions
-    if user.guild_permissions.administrator:
+    guild_permissions = getattr(user, "guild_permissions", None)
+    if guild_permissions and guild_permissions.administrator:
         return True
     
     # Check for mod role (case-insensitive)
-    if hasattr(user, 'roles'):
-        mod_roles_lower = [role.lower() for role in MOD_ROLE_NAME]
-        for role in user.roles:
-            if role.name.lower() in mod_roles_lower:
-                return True
+    if has_named_role(user, MOD_ROLE_NAME):
+        return True
             
     # Check for IDs
     if user.id in MOD_IDS:
@@ -137,15 +235,13 @@ def has_admin_or_mod_permissions(param) -> bool:
 def has_badge_permissions(member) -> bool:
     """Check if user has permissions to upload badges"""
     # Check for administrator permissions
-    if member.guild_permissions.administrator:
+    guild_permissions = getattr(member, "guild_permissions", None)
+    if guild_permissions and guild_permissions.administrator:
         return True
     
     # Check for mod role (case-insensitive)
-    if hasattr(member, 'roles'):
-        mod_roles_lower = [role.lower() for role in MOD_ROLE_NAME]
-        for role in member.roles:
-            if role.name.lower() in mod_roles_lower:
-                return True
+    if has_named_role(member, MOD_ROLE_NAME):
+        return True
     
     return False
 
@@ -252,10 +348,9 @@ async def save_data_task():
         "chain": get_chain_data()
     }
     
-    with open(SAVED_DATA_PATH, "w") as f:
-        json.dump(data, f, indent=4)
+    DailyStateRepository(SAVED_DATA_PATH).save(data)
     
-    print(f"✅ Data saved at {now_et().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Data saved at {now_et().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"Data saved at {now_et().strftime('%Y-%m-%d %H:%M:%S')}")
 
 def format_username(username):
