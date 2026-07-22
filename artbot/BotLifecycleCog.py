@@ -14,6 +14,9 @@ class BotLifecycleCog(commands.Cog):
         self.bot = bot_instance
         self.app_context = app_context
         self.started = False
+        # Do not overwrite persisted state if Discord login fails before on_ready
+        # has had a chance to load it.
+        self.state_initialized = False
 
     def cog_unload(self) -> None:
         self._stop_loop(daily.send_daily_art_message)
@@ -33,6 +36,7 @@ class BotLifecycleCog(commands.Cog):
         self.started = True
         try:
             self.load_data()
+            self.state_initialized = True
             self.app_context.duel_service.set_tracked_users_reference(shared.tracked_users)
             self.app_context.chain_service.set_tracked_users_reference(shared.tracked_users)
 
@@ -76,6 +80,12 @@ class BotLifecycleCog(commands.Cog):
             logger.error(f"Error cleaning up duels: {e}")
 
     async def persist_runtime_state(self) -> None:
+        if not self.state_initialized:
+            logger.warning(
+                "Skipping shutdown save because persisted state was never loaded."
+            )
+            return
+
         try:
             await shared.save_data_task()
         except Exception as e:

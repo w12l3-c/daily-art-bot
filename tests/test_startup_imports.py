@@ -3,6 +3,7 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+from unittest.mock import AsyncMock, patch
 
 import discord
 from discord.ext import commands
@@ -80,6 +81,21 @@ class StartupImportTest(unittest.TestCase):
 
 
 class CogRegistrationTest(unittest.IsolatedAsyncioTestCase):
+    async def test_shutdown_before_ready_does_not_overwrite_saved_state(self) -> None:
+        intents = discord.Intents.default()
+        test_bot = commands.Bot(command_prefix="!", intents=intents)
+        app_context = AppContext.from_shared()
+        app_context.wcw_service.save_data = AsyncMock()
+        lifecycle = importlib.import_module("artbot.BotLifecycleCog").BotLifecycleCog(
+            test_bot, app_context
+        )
+
+        with patch("artbot.shared.save_data_task", new=AsyncMock()) as save_daily:
+            await lifecycle.persist_runtime_state()
+
+        save_daily.assert_not_awaited()
+        app_context.wcw_service.save_data.assert_not_awaited()
+
     async def test_register_cogs_adds_expected_commands(self) -> None:
         intents = discord.Intents.default()
         intents.members = True
